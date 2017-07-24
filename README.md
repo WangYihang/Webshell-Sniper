@@ -10,7 +10,8 @@ Author :
         WangYihang <wangyihanger@gmail.com>
 ```
 
-TODO : 
+TODO :
+- [x] 基础 shell 功能
 - [ ] 模块化
 - [ ] 检测目标服务器禁用的 PHP 函数
 - [ ] 如果命令执行失败 , 则使用可替代的 PHP 函数
