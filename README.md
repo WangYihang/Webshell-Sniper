@@ -1,6 +1,5 @@
 # webshell-sniper
 
----
 Usage :
 ```
 Usage : 
@@ -11,7 +10,6 @@ Author :
         WangYihang <wangyihanger@gmail.com>
 ```
 
----
 TODO : 
 - [ ] 模块化
 - [ ] 检测目标服务器禁用的 PHP 函数
