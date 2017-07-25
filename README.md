@@ -1,11 +1,11 @@
-# webshell-sniper
+# websniper
 
 Usage :
 ```
 Usage : 
-        python main.py [URL] [METHOD] [AUTH]
+        python websniper.py [URL] [METHOD] [AUTH]
 Example : 
-        python main.py http://127.0.0.1/c.php POST c
+        python websniper.py http://127.0.0.1/c.php POST c
 Author : 
         WangYihang <wangyihanger@gmail.com>
 ```
