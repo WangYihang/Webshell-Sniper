@@ -128,13 +128,10 @@ def format_array(array):
         result += "\t" + i + "\n"
     return result[0:-1]
 
-
 def init(url, method, auth):
     print "[+] Disabled functions "
     disable_functions = get_disable_functions(url, method, auth)
     print format_array(disable_functions)
-
-
 
 def main():
     if len(sys.argv) != 4:
