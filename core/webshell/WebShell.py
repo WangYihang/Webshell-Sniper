@@ -42,6 +42,7 @@ class WebShell():
         return value in content
 
     def check_connection(self, url):
+        Log.info("Checking the connection to the webshell...")
         try:
             response = requests.head(url)
             code = response.status_code
