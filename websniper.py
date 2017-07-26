@@ -9,9 +9,6 @@ import urllib
 
 
 '''
-def code_exec(url, code):
-    return status
-
 
 def check_shell_exec(url):
 
