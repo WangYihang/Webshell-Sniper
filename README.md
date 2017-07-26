@@ -10,6 +10,9 @@ Author :
         WangYihang <wangyihanger@gmail.com>
 ```
 
+ScreenShot : 
+![ScreenShot](example.png)
+
 TODO :
 - [x] 基础 shell 功能
 - [x] 检测 shell 是否可用
