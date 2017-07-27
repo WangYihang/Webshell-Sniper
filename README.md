@@ -1,11 +1,12 @@
-# websniper
+# Webshell-Sniper
+A webshell manager via terminal
 
 Usage :
 ```
 Usage : 
-        python websniper.py [URL] [METHOD] [AUTH]
+        python sniper.py [URL] [METHOD] [AUTH]
 Example : 
-        python websniper.py http://127.0.0.1/c.php POST c
+        python sniper.py http://127.0.0.1/c.php POST c
 Author : 
         WangYihang <wangyihanger@gmail.com>
 ```
@@ -53,6 +54,7 @@ TODO :
 - [ ] 整站打包下载
 - [x] 数据库管理
 - [ ] 插件市场
+- [ ] 处理 Ctrl + C 信号
 - [ ] 支持命令历史 (readline库)
 - [ ] 实现 PDO / mysql_connection 的数据库操作方式 (目前只实现了 mysqli_connection )
 
