@@ -11,7 +11,7 @@ Author :
 ```
 
 ScreenShot : 
-![asciicast](https://asciinema.org/a/aAE033icmfs0GFl6xqbyj4ZNN.png)
+[![asciicast](https://asciinema.org/a/aAE033icmfs0GFl6xqbyj4ZNN.png)](https://asciinema.org/a/aAE033icmfs0GFl6xqbyj4ZNN)
 
 TODO :
 - [x] 基础 shell 功能
