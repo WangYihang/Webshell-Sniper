@@ -52,6 +52,7 @@ TODO :
 - [ ] 数据库管理
 - [ ] 插件市场
 - [ ] 支持命令历史 (readline库)
+- [ ] 实现 PDO / mysql_connection 的数据库操作方式 (目前只实现了 mysqli_connection )
 
 支持情况 :
 ```
