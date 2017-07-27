@@ -16,7 +16,22 @@ class Mysql():
         self.user = ""
         self.databases = []
         self.version = ""
-        self.function = self.get_function(webshell)
+        self.function = self.get_function(self.webshell)
+        # TODO 判断函数类型
+        self.connection_flag = self.check_connection(self.webshell)
+
+    def check_connection(self, webshell):
+        code = "error_reporting(0);$h='%s';$u='%s';$p='%s';$c=new mysqli($h,$u,$p);if(mysqli_connect_error()){echo mysqli_connect_error();}$c->close();" % (self.ip, self.username, self.password)
+        result = webshell.php_code_exec(code)
+        if result[0]:
+            content = result[1]
+            if content == "":
+                return True
+            else:
+                Log.error("Error: %s" % (content))
+                return False
+        else:
+            return False
 
     def get_function(self, webshell):
         '''

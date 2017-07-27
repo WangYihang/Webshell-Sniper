@@ -60,8 +60,12 @@ def main():
             password = raw_input("Password (root): ") or "root"
             Log.info("Creating connection by [%s:%s] to [%s]..." % (username, password, ip))
             mysql_connection = Mysql(webshell, ip, username, password)
+            if not mysql_connection.connection_flag:
+                Log.error("Connection failed!")
+                continue
+            Log.success("Connection success!")
             if mysql_connection.function != "":
-                Log.info("Entering database server interactive mode...")
+                Log.success("Entering database server interactive mode...")
                 mysql_connection.interactive()
             else:
                 Log.error("No supported database function!")
