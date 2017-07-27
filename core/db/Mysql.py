@@ -133,7 +133,7 @@ class Mysql():
         result = self.webshell.php_code_exec_token(code)
         if result[0]:
             content = result[1]
-            Log.success(content)
+            Log.success(content.split(",")[0])
         else:
             Log.error("Error occured!")
 
