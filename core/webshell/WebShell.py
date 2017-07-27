@@ -99,6 +99,16 @@ class WebShell():
             Log.error("The connection is aborted!")
             return (False, "The connection is aborted!")
 
+    def php_code_exec_token(self, code):
+        token = random_string(32, string.letters)
+        code = 'echo "%s";%s;echo "%s";' % (token, code, token)
+        result = self.php_code_exec(code)
+        if result[0]:
+            content = result[1]
+            return (True, content.split(token)[1])
+        else:
+            return (False, content)
+
     def php_code_exec(self, code):
         try:
             if self.method == "POST":
