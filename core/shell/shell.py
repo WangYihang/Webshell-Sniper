@@ -12,6 +12,7 @@ class Shell():
     def interactive(self):
         Log.info("Starting interactive shell...")
         while True:
+            Log.context("sniper")
             Log.context("shell")
             command = raw_input("$ ")
             if string.lower(command) == "exit":

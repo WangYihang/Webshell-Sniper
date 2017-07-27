@@ -5,6 +5,7 @@ from core.webshell import WebShell
 from core.shell import Shell
 from core.log import Log
 from core.db import Mysql
+from core.banner import banner
 
 import sys
 import string
@@ -28,6 +29,7 @@ def main_help():
     print "        4. [q|quit|exit] : quit"
 
 def main():
+    banner()
     if len(sys.argv) != 4:
         show_help()
         exit(1)
