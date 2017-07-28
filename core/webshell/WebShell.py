@@ -2,6 +2,7 @@
 # encoding: utf-8
 
 from core.utils.string_utils.random_string import random_string
+from core.utils.string_utils.list2string import list2string
 from core.utils.http.build_url import build_url
 from core.log import Log
 
@@ -16,6 +17,7 @@ class WebShell():
     working = False
     php_version = ""
     kernel_version = ""
+    disabled_functions = []
     def __init__(self, url, method, password):
         self.url = url
         self.method = method
@@ -83,6 +85,21 @@ class WebShell():
                 Log.success("Found : \n%s" % output[1])
         else:
             Log.error("Error occured! %s" % output[1])
+
+    def get_disabled_functions(self):
+        if len(self.disabled_functions) != 0:
+            Log.success("Disabled functions : \n%s" % list2string(self.disabled_functions, "\t[", "]\n"))
+            return
+        result = self.php_code_exec_token("echo ini_get('disable_functions');")
+        if result[0]:
+            if result[1] == "":
+                Log.warning("No function disabled!")
+                self.disabled_functions = []
+            else:
+                self.disabled_functions = result[1].split(",")[0:-1]
+                Log.success("Disabled functions : \n%s" % list2string(self.disabled_functions, "\t[", "]\n"))
+        else:
+            Log.error("Error occured! %s" % result[1])
 
     def get_writable_php_file(self):
         command = "find %s -name '*.php' -writable" % (self.webroot)

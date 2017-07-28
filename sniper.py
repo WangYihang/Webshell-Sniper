@@ -33,6 +33,7 @@ def main_help():
     print "        8. [p|print] : print target server info"
     print "        8. [fwd] : find writable directory"
     print "        8. [fwpf] : find writable php file"
+    print "        8. [gdf] : get disabled function"
     print "        9. [q|quit|exit] : quit"
 
 def main():
@@ -74,6 +75,8 @@ def main():
             webshell.get_config_file()
         elif context == "fwd":
             webshell.get_writable_directory()
+        elif context == "gdf":
+            webshell.get_disabled_functions()
         elif context == "fwpf":
             webshell.get_writable_php_file()
         elif context == "r" or context == "read":
