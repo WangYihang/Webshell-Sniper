@@ -62,6 +62,9 @@ def main():
             password = raw_input("Password (root): ") or "root"
             Log.info("Creating connection by [%s:%s] to [%s]..." % (username, password, ip))
             mysql_connection = Mysql(webshell, ip, username, password)
+            if not mysql_connection.function:
+                Log.error("The target server cannot support mysql!")
+                continue
             if not mysql_connection.connection_flag:
                 Log.error("Connection failed!")
                 continue
