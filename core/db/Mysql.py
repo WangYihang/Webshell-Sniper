@@ -38,7 +38,7 @@ class Mysql():
         '''
         获取目标服务器支持的数据库链接函数
         '''
-        functions = ["mysql_connect", "mysqli_connect"]
+        functions = ["mysqli_connect", "mysql_connect"]
         for f in functions:
             if webshell.check_function_exist(f):
                 self.function = f
