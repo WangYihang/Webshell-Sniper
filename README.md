@@ -12,7 +12,7 @@ Author :
 ```
 
 ScreenShot : 
-[![asciicast](https://asciinema.org/a/Si84wbgKpRBmfyhrnPOL6H4nj.png)](https://asciinema.org/a/Si84wbgKpRBmfyhrnPOL6H4nj)
+[![asciicast](https://asciinema.org/a/Si84wbgKpRBmfyhrnPOL6H4nj.png)](https://asciinema.org/a/130893)
 
 TODO :
 - [x] 基础 shell 功能
