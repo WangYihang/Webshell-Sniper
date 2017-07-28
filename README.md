@@ -13,6 +13,8 @@ Author :
 
 ScreenShot : 
 
+> v1.0.5
+
 [![v1.0.5](https://asciinema.org/a/Si84wbgKpRBmfyhrnPOL6H4nj.png)](https://asciinema.org/a/130893)
 
 ```
