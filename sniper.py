@@ -34,6 +34,7 @@ def main_help():
     print "        8. [fwd] : find writable directory"
     print "        8. [fwpf] : find writable php file"
     print "        8. [gdf] : get disabled function"
+    print "        8. [ps] : port scan"
     print "        9. [q|quit|exit] : quit"
 
 def main():
@@ -79,6 +80,10 @@ def main():
             webshell.get_disabled_functions()
         elif context == "fwpf":
             webshell.get_writable_php_file()
+        elif context == "ps":
+            hosts = raw_input("Input hosts (192.168.1.1/24) : ") or "192.168.1.1/24"
+            ports = raw_input("Input ports (21,22,25,80,443,445,3389)") or "21,22,25,80,443,445,3389"
+            webshell.port_scan(hosts, ports)
         elif context == "r" or context == "read":
             filepath = raw_input("Input file path (/etc/passwd) : ") or "/etc/passwd"
             webshell.read_file(filepath)
