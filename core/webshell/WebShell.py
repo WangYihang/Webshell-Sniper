@@ -34,26 +34,26 @@ class WebShell():
 
     def get_php_version(self):
         if self.php_version != "":
-            Log.success(self.php_version)
+            # Log.success("PHP Version : \n\t%s" % (self.php_version))
             return self.php_version
         result = self.auto_exec("php -v")
         if result[0]:
-            Log.success(result[1][0:-1])
+            # Log.success("PHP Version : \n\t%s" % (result[1][0:-1]))
             return result[1][0:-1]
         else:
-            Log.error("Error occured! %s" % result[1])
+            Log.error("Error occured while getting php version! %s" % result[1])
             return ""
 
     def get_kernel_version(self):
         if self.kernel_version != "":
-            Log.success(self.kernel_version)
+            # Log.success("Kernel Version : \n\t%s" % (self.kernel_version))
             return self.kernel_version
         result = self.auto_exec("uname -a")
         if result[0]:
-            Log.success(result[1][0:-1])
+            # Log.success("Kernel Version : \n\t%s" % (result[1][0:-1]))
             return result[1][0:-1]
         else:
-            Log.error("Error occured! %s" % result[1])
+            Log.error("Error occured while getting kernel version! %s" % result[1])
             return ""
 
     def print_info(self):
