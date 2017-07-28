@@ -31,11 +31,11 @@ def main_help():
     print "        6. [kv|kernel_version] : kernel version"
     print "        7. [pv|php_version] : php version"
     print "        8. [p|print] : print target server info"
-    print "        8. [fwd] : find writable directory"
-    print "        8. [fwpf] : find writable php file"
-    print "        8. [gdf] : get disabled function"
-    print "        8. [ps] : port scan"
-    print "        9. [q|quit|exit] : quit"
+    print "        9. [fwd] : find writable directory"
+    print "        10. [fwpf] : find writable php file"
+    print "        11. [gdf] : get disabled function"
+    print "        12. [ps] : port scan"
+    print "        13. [q|quit|exit] : quit"
 
 def main():
     banner()
