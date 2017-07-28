@@ -31,6 +31,8 @@ def main_help():
     print "        6. [kv|kernel_version] : kernel version"
     print "        7. [pv|php_version] : php version"
     print "        8. [p|print] : print target server info"
+    print "        8. [fwd] : find writable directory"
+    print "        8. [fwpf] : find writable php file"
     print "        9. [q|quit|exit] : quit"
 
 def main():
@@ -70,6 +72,10 @@ def main():
         elif context == "c" or context == "config":
             Log.info("Detacting config files...")
             webshell.get_config_file()
+        elif context == "fwd":
+            webshell.get_writable_directory()
+        elif context == "fwpf":
+            webshell.get_writable_php_file()
         elif context == "r" or context == "read":
             filepath = raw_input("Input file path (/etc/passwd) : ") or "/etc/passwd"
             webshell.read_file(filepath)

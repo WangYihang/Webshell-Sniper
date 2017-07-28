@@ -73,6 +73,28 @@ class WebShell():
         else:
             Log.error("Error occured! %s" % result[1])
 
+    def get_writable_directory(self):
+        command = "find %s -type d -writable" % (self.webroot)
+        output = self.auto_exec(command)
+        if output[0]:
+            if output[1] == "":
+                Log.warning("Nothing found!")
+            else:
+                Log.success("Found : \n%s" % output[1])
+        else:
+            Log.error("Error occured! %s" % output[1])
+
+    def get_writable_php_file(self):
+        command = "find %s -name '*.php' -writable" % (self.webroot)
+        output = self.auto_exec(command)
+        if output[0]:
+            if output[1] == "":
+                Log.warning("Nothing found!")
+            else:
+                Log.success("Found : \n%s" % output[1])
+        else:
+            Log.error("Error occured! %s" % output[1])
+
 
     def get_config_file(self):
         keywords = ["config", "db", "database"]
