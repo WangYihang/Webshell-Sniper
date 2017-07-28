@@ -218,6 +218,8 @@ class WebShell():
             return (False, content)
 
     def php_code_exec(self, code):
+        # enable gzip
+        code = "ob_start('ob_gzip');" + code + "ob_end_flush();"
         try:
             if self.method == "POST":
                 data = {self.password:code}
