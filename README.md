@@ -12,7 +12,8 @@ Author :
 ```
 
 ScreenShot : 
-[![asciicast](https://asciinema.org/a/Si84wbgKpRBmfyhrnPOL6H4nj.png)](https://asciinema.org/a/130893)
+
+[![v1.0.5](https://asciinema.org/a/Si84wbgKpRBmfyhrnPOL6H4nj.png)](https://asciinema.org/a/130893)
 
 ```
 ===================================================
@@ -23,7 +24,7 @@ ScreenShot :
           |____/|_| |_|_| .__/ \___|_|
                       |_|
 ===================================================
-|          WebShell Manager Via Terminal          |
+|    WebShell Manager Via Terminal  (v1.1.0)      |
 |  https://github.com/wangyihang/webshell-sniper  |
 ===================================================
 [+] Checking the connection to the webshell...
