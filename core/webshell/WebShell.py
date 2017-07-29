@@ -86,6 +86,21 @@ class WebShell():
         else:
             Log.error("Error occured! %s" % output[1])
 
+
+    def get_suid_binaries(self):
+        paths = ['/usr/local/sbin', '/usr/local/bin', '/usr/sbin', '/usr/bin', '/sbin', '/bin', '/usr/games', '/usr/local/games', '/snap/bin']
+        for path in paths:
+            command = "find %s -user root -perm -4000 -exec ls -ldb {} \;" % (path)
+            Log.info("Executing : %s" % (command))
+            output = self.auto_exec(command)
+            if output[0]:
+                if output[1] == "":
+                    Log.warning("Nothing found!")
+                else:
+                    Log.success("Found : \n%s" % output[1])
+            else:
+                Log.error("Error occured! %s" % output[1])
+
     def get_disabled_functions(self):
         if len(self.disabled_functions) != 0:
             Log.success("Disabled functions : \n%s" % list2string(self.disabled_functions, "\t[", "]\n"))
