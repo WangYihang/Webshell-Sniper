@@ -110,7 +110,7 @@ class Mysql():
         if result[0]:
             content = result[1]
             tables = content.split(",")[0:-1]
-            Log.success(list2string(tables, "=> [", "]\n"))
+            Log.success("Tables : \n" + list2string(tables, "=> [", "]\n"))
         else:
             Log.error("Error occured!")
 
@@ -121,7 +121,7 @@ class Mysql():
         if result[0]:
             content = result[1]
             columns = content.split(",")[0:-1]
-            Log.success(list2string(columns, "=> [", "]\n"))
+            Log.success("Columns : \n" + list2string(columns, "=> [", "]\n"))
         else:
             Log.error("Error occured!")
 
