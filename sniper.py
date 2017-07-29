@@ -83,6 +83,9 @@ def main():
             webshell.get_writable_php_file()
         elif context == "ps":
             hosts = raw_input("Input hosts (192.168.1.1/24) : ") or "192.168.1.1/24"
+            if not "/" in hosts:
+                Log.error("Please use the format IP/MASK , if want to scan a single host , set MASK=32")
+                continue
             ports = raw_input("Input ports (21,22,25,80,443,445,3389)") or "21,22,25,80,443,445,3389"
             webshell.port_scan(hosts, ports)
         elif context == "r" or context == "read":
