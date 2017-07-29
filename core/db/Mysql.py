@@ -41,7 +41,7 @@ class Mysql():
         functions = ["mysqli_connect", "mysql_connect"]
         for f in functions:
             if webshell.check_function_exist(f):
-                return self.function
+                return f
 
     def get_currect_database(self):
         if self.database != "":
