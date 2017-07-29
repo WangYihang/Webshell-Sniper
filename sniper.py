@@ -10,6 +10,7 @@ from core.utils.network import get_ip_address
 
 import sys
 import string
+import os
 
 def show_help():
     print "Usage : "
@@ -38,7 +39,9 @@ def main_help():
     print "        12. [ps] : port scan"
     print "        14. [fsb] : find setuid binaries"
     print "        15. [dl] : download file"
-    print "        16. [q|quit|exit] : quit"
+    print "        16. [setl] : set default execute command on localhost"
+    print "        17. [setr] : set default execute command on remote server"
+    print "        18. [q|quit|exit] : quit"
 
 def main():
     banner()
@@ -49,6 +52,7 @@ def main():
     method = sys.argv[2]
     password = sys.argv[3]
     webshell = WebShell(url, method, password)
+    LOCAL_COMMAND_FLAG = True
     if not webshell.working:
         Log.error("The webshell cannot work...")
         exit(2)
@@ -86,6 +90,10 @@ def main():
             webshell.get_writable_php_file()
         elif context == "fsb":
             webshell.get_suid_binaries()
+        elif context == "setr":
+            LOCAL_COMMAND_FLAG = False
+        elif context == "setl":
+            LOCAL_COMMAND_FLAG = True
         elif context == "dl":
             path = raw_input("Input path (%s) : " % webshell.webroot) or (webshell.webroot)
             if not webshell.file_exists(path):
@@ -132,10 +140,13 @@ def main():
             Log.info("Quiting...")
             break
         else:
-            Log.error("Unsupported command!")
-            Log.warning("Using shell command")
-            webshell.auto_exec_print(context)
-            # main_help()
+            Log.error("Unsupported function!")
+            if LOCAL_COMMAND_FLAG == True:
+                Log.info("Executing command on localhost...")
+                os.system(context)
+            else:
+                Log.info("Executing command on target server...")
+                webshell.auto_exec_print(context)
 
 if __name__ == "__main__":
     main()
