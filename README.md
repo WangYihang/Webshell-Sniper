@@ -15,7 +15,7 @@ ScreenShot :
 
 > v1.1.0
 
-[![A Pentest Example via Webshell-Sniper](IMG)](https://youtu.be/iAUwb8SSS4s)
+[![A Pentest Example via Webshell-Sniper](https://img.youtube.com/vi/iAUwb8SSS4s/0.jpg)](https://www.youtube.com/watch?v=iAUwb8SSS4s)
 
 > v1.0.5
 
