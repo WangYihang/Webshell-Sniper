@@ -13,9 +13,9 @@ Author :
 
 ScreenShot : 
 
-> v1.0.5
+> v1.1.0
 
-[![v1.0.5](https://asciinema.org/a/Si84wbgKpRBmfyhrnPOL6H4nj.png)](https://asciinema.org/a/130893)
+[Youtube](https://youtu.be/iAUwb8SSS4s)
 
 ```
 ===================================================
@@ -76,6 +76,12 @@ Commands :
         13. [q|quit|exit] : quit
 [sniper]=>
 ```
+
+
+> v1.0.5
+
+[![v1.0.5](https://asciinema.org/a/Si84wbgKpRBmfyhrnPOL6H4nj.png)](https://asciinema.org/a/130893)
+
 
 TODO :
 - [x] 基础 shell 功能
