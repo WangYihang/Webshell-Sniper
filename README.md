@@ -15,68 +15,7 @@ ScreenShot :
 
 > v1.1.0
 
-[Youtube](https://youtu.be/iAUwb8SSS4s)
-
-```
-===================================================
-           ____        _
-          / ___| _ __ (_)_ __   ___ _ __
-          \___ \| '_ \| | '_ \ / _ \ '__|
-           ___) | | | | | |_) |  __/ |
-          |____/|_| |_|_| .__/ \___|_|
-                      |_|
-===================================================
-|    WebShell Manager Via Terminal  (v1.1.0)      |
-|  https://github.com/wangyihang/webshell-sniper  |
-===================================================
-[+] Checking the connection to the webshell...
-[+] The status code is 200
-[+] Checking whether the webshell is still work...
-[+] Using challenge key : [AGWIBE] , value : [eOkdpmxxVDjKBCRLLcPShiXKuRNyJYfx]
-[+] Using token : [rbVMwcFhabWLYlmTZTxEjNCZOqcNBVFM]
-[+] Using POST method...
-[+] The content is :
- rbVMwcFhabWLYlmTZTxEjNCZOqcNBVFMstring(32) "eOkdpmxxVDjKBCRLLcPShiXKuRNyJYfx"
-rbVMwcFhabWLYlmTZTxEjNCZOqcNBVFMtest
-
-[+] It works well!
-[+] PHP 7.0.18-0ubuntu0.17.04.1 (cli) (built: Apr 26 2017 23:59:48) ( NTS )
-Copyright (c) 1997-2017 The PHP Group
-Zend Engine v3.0.0, Copyright (c) 1998-2017 Zend Technologies
-    with Zend OPcache v7.0.18-0ubuntu0.17.04.1, Copyright (c) 1999-2017, by Zend Technologies
-[+] Linux sun 4.10.0-28-generic #32-Ubuntu SMP Fri Jun 30 05:32:18 UTC 2017 x86_64 x86_64 x86_64 GNU/Linux
-[+] ================================
-[+] URL : http://127.0.0.1/c.php
-[+] Method : POST
-[+] Password : c
-[+] Document Root : /var/www/html
-[+] ================================
-[+] PHP version : 
-	PHP 7.0.18-0ubuntu0.17.04.1 (cli) (built: Apr 26 2017 23:59:48) ( NTS )
-Copyright (c) 1997-2017 The PHP Group
-Zend Engine v3.0.0, Copyright (c) 1998-2017 Zend Technologies
-    with Zend OPcache v7.0.18-0ubuntu0.17.04.1, Copyright (c) 1999-2017, by Zend Technologies
-[+] Kernel version : 
-	Linux sun 4.10.0-28-generic #32-Ubuntu SMP Fri Jun 30 05:32:18 UTC 2017 x86_64 x86_64 x86_64 GNU/Linux
-[+] ================================
-Commands : 
-        0. [h|help|?|\n] : show this help
-        1. [sh|shell] : start an interactive shell
-        2. [rsh|rshell] : start an reverse shell
-        3. [db|database] : database manager
-        4. [c|config] : find the config files
-        5. [r|read] : read file
-        6. [kv|kernel_version] : kernel version
-        7. [pv|php_version] : php version
-        8. [p|print] : print target server info
-        9. [fwd] : find writable directory
-        10. [fwpf] : find writable php file
-        11. [gdf] : get disabled function
-        12. [ps] : port scan
-        13. [q|quit|exit] : quit
-[sniper]=>
-```
-
+[![A Pentest Example via Webshell-Sniper](IMG)](https://youtu.be/iAUwb8SSS4s)
 
 > v1.0.5
 
