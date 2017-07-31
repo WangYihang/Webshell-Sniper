@@ -365,7 +365,7 @@ class WebShell():
         else:
             Log.error("Fetch data failed!")
 
-    def download_recursion(self, path):
+    def download_recursion(self, path, filename_filter):
         root = get_domain(self.url)
         # List all dir and create them
         directories = self.get_all_directories(path)
@@ -380,7 +380,7 @@ class WebShell():
                 Log.error(str(e))
         # Download
         Log.info("Listing all files...")
-        result = self.auto_exec('find %s -type f' % (path))
+        result = self.auto_exec("find %s -type f -name '%s'" % (path, filename_filter))
         if result[0]:
             Log.success("Listing files success!")
             content = result[1].split("\n")[0:-1]

@@ -38,7 +38,7 @@ def main_help():
     print "        11. [gdf] : get disabled function"
     print "        12. [ps] : port scan"
     print "        14. [fsb] : find setuid binaries"
-    print "        15. [dl] : download file"
+    print "        15. [dl] : download files"
     print "        16. [setl] : set default execute command on localhost"
     print "        17. [setr] : set default execute command on remote server"
     print "        18. [q|quit|exit] : quit"
@@ -61,7 +61,8 @@ def main():
 
     while True:
         Log.context("sniper")
-        context = string.lower(raw_input("=>") or "h")
+        context_fresh = raw_input("=>") or "h"
+        context = string.lower(context_fresh)
         if context == "h" or context == "help" or context == "?":
             main_help()
         elif context == "sh" or context == "shell":
@@ -101,7 +102,8 @@ def main():
                 continue
             if webshell.is_directory(path):
                 Log.info("The target file is a directory, using recursion download...")
-                webshell.download_recursion(path)
+                filename_filter = raw_input("Input --name '%s' : " % ("*.php")) or "*.php"
+                webshell.download_recursion(path, filename_filter)
             else:
                 filename = path.split("/")[-1]
                 local_path = raw_input("Input local path (%s) to save the file : " % filename) or (filename)
@@ -143,10 +145,10 @@ def main():
             Log.error("Unsupported function!")
             if LOCAL_COMMAND_FLAG == True:
                 Log.info("Executing command on localhost...")
-                os.system(context)
+                os.system(context_fresh)
             else:
                 Log.info("Executing command on target server...")
-                webshell.auto_exec_print(context)
+                webshell.auto_exec_print(context_fresh)
 
 if __name__ == "__main__":
     main()
