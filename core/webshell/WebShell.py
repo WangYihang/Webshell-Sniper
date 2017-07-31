@@ -452,7 +452,7 @@ class WebShell():
             for file in content:
                 p = root + file
                 Log.info("Downloading %s to %s" % (file, p))
-                self.download(file, p)
+                self.download_base(file, p)
         else:
             Log.error("Listing files error!")
 
