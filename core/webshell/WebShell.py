@@ -391,6 +391,31 @@ class WebShell():
         else:
             Log.error("Listing files error!")
 
+    def download_advanced(self, path, args):
+        root = get_domain(self.url)
+        # List all dir and create them
+        directories = self.get_all_directories(path)
+        Log.success("Directories : \n%s" % list2string(directories, "\t[", "]\n"))
+        Log.info("Create directories locally...")
+        for d in directories:
+            p = root + d
+            Log.info("Creating : [%s]" % (p))
+            try:
+                os.makedirs(p)
+            except Exception as e:
+                Log.error(str(e))
+        # Download
+        Log.info("Listing all files...")
+        result = self.auto_exec("find %s %s" % (path, args))
+        if result[0]:
+            Log.success("Listing files success!")
+            content = result[1].split("\n")[0:-1]
+            for file in content:
+                p = root + file
+                Log.info("Downloading %s to %s" % (file, p))
+                self.download(file, p)
+        else:
+            Log.error("Listing files error!")
 
     def get_all_directories(self, path):
         command = "find %s -type d" % (path)

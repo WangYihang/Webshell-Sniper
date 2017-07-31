@@ -39,6 +39,7 @@ def main_help():
     print "        12. [ps] : port scan"
     print "        14. [fsb] : find setuid binaries"
     print "        15. [dl] : download files"
+    print "        15. [dla] : download files advanced"
     print "        16. [setl] : set default execute command on localhost"
     print "        17. [setr] : set default execute command on remote server"
     print "        18. [q|quit|exit] : quit"
@@ -95,6 +96,11 @@ def main():
             LOCAL_COMMAND_FLAG = False
         elif context == "setl":
             LOCAL_COMMAND_FLAG = True
+        elif context == "dla":
+            path = raw_input("Input path (%s) : " % webshell.webroot) or (webshell.webroot)
+            args = raw_input("Please custom find args (%s) : " % (" -size 500k")) or " -size 500k"
+            Log.info("Using command : find %s %s" % (path, args))
+            webshell.download_advanced(path, args)
         elif context == "dl":
             path = raw_input("Input path (%s) : " % webshell.webroot) or (webshell.webroot)
             if not webshell.file_exists(path):
