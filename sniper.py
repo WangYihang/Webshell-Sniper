@@ -111,11 +111,11 @@ def main():
                 filename_filter = raw_input("Input --name '%s' : " % ("*.php")) or "*.php"
                 webshell.download_recursion(path, filename_filter)
             else:
-                filename = path.split("/")[-1]
-                local_path = raw_input("Input local path (%s) to save the file : " % filename) or (filename)
-                Log.info("Using root path : [%s] to save!" % (local_path))
+                #filename = path.split("/")[-1]
+                #local_path = raw_input("Input local path (%s) to save the file : " % filename) or (filename)
+                # Log.info("Using root path : [%s] to save!" % (local_path))
                 Log.info("The target file is a single file, starting download...")
-                webshell.download(path, local_path)
+                webshell.download(path, path)
         elif context == "ps":
             hosts = raw_input("Input hosts (192.168.1.1/24) : ") or "192.168.1.1/24"
             if not "/" in hosts:

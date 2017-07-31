@@ -4,4 +4,5 @@
 from http import *
 from string_utils import *
 from function_call import *
+from hash import *
 
