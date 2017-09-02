@@ -21,7 +21,7 @@ Example :
 
 > v1.0.5
 
-[![asciicast](https://asciinema.org/a/130893.png)](https://asciinema.org/a/130893)
+[![Example Video](https://asciinema.org/a/130893.png)](https://asciinema.org/a/130893)
 
 TODO :
 - [x] 基础 shell 功能
