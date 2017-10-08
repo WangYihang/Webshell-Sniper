@@ -87,7 +87,11 @@ class WebShell():
                 return []
             else:
                 Log.success("Found : \n%s" % output[1][0:-1])
-                return output[1].split("\n")[0:-1]
+                writable_dirs = []
+                for d in output[1].split("\n")[0:-1]:
+                    if not d.startswith("find: '"):
+                        writable_dirs.append(d)
+                return writable_dirs
         else:
             Log.error("Error occured! %s" % output[1])
             return []
