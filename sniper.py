@@ -12,6 +12,12 @@ from core.utils.string_utils.random_string import random_string
 import sys
 import string
 import os
+import hashlib
+
+salt = "Webshell-Sniper"
+
+def md5(content):
+    return hashlib.md5(content).hexdigest()
 
 def show_help():
     print "Usage : "
@@ -44,7 +50,7 @@ def main_help():
     print "        16. [setl] : set default execute command on localhost"
     print "        17. [setr] : set default execute command on remote server"
     print "        18. [aiw] : auto inject webshell"
-    print "        19. [aaw] : auto append webshell"
+    print "        19. [aimw] : auto inject memery webshell"
     print "        20. [q|quit|exit] : quit"
 
 def main():
@@ -127,10 +133,17 @@ def main():
             ports = raw_input("Input ports (21,22,25,80,443,445,3389)") or "21,22,25,80,443,445,3389"
             webshell.port_scan(hosts, ports)
         elif context == "aiw":
-            default = random_string(0x10, string.letters)
-            filename = raw_input("Filename (.%s.php): " % (default)) or (".%s.php" % (default))
-            password = raw_input("Password (%s): " % (default)) or ("%s" % (default))
+            default_filename = random_string(0x10, string.letters)
+            default_password = md5(md5("%s%s%s" % (salt, default_filename, salt)))
+            filename = raw_input("Filename (.%s.php): " % (default_filename)) or (".%s.php" % (default_filename))
+            password = raw_input("Password (%s): " % (default_password)) or ("%s" % (default_password))
             webshell.auto_inject_webshell(filename, password)
+        elif context == "aimw":
+            default_filename = random_string(0x10, string.letters)
+            default_password = md5(md5("%s%s%s" % (salt, default_filename, salt)))
+            filename = raw_input("Filename (.%s.php): " % (default_filename)) or (".%s.php" % (default_filename))
+            password = raw_input("Password (%s): " % (default_password)) or ("%s" % (default_password))
+            webshell.auto_inject_memery_webshell(filename, password)
         elif context == "r" or context == "read":
             filepath = raw_input("Input file path (/etc/passwd) : ") or "/etc/passwd"
             webshell.read_file(filepath)

