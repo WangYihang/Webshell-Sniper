@@ -46,12 +46,13 @@ def main_help():
     print "        12. [ps] : port scan"
     print "        14. [fsb] : find setuid binaries"
     print "        15. [dl] : download files"
-    print "        15. [dla] : download files advanced"
-    print "        16. [setl] : set default execute command on localhost"
-    print "        17. [setr] : set default execute command on remote server"
-    print "        18. [aiw] : auto inject webshell"
-    print "        19. [aimw] : auto inject memery webshell"
-    print "        20. [q|quit|exit] : quit"
+    print "        16. [dla] : download files advanced"
+    print "        17. [setl] : set default execute command on localhost"
+    print "        18. [setr] : set default execute command on remote server"
+    print "        19. [aiw] : auto inject webshell"
+    print "        20. [aimw] : auto inject memery webshell"
+    print "        21. [fr] : flag reaper"
+    print "        22. [q|quit|exit] : quit"
 
 def main():
     banner()
@@ -144,6 +145,8 @@ def main():
             filename = raw_input("Filename (.%s.php): " % (default_filename)) or (".%s.php" % (default_filename))
             password = raw_input("Password (%s): " % (default_password)) or ("%s" % (default_password))
             webshell.auto_inject_memery_webshell(filename, password)
+        elif context == "fr":
+            Log.info("Starting flag reaper...")
         elif context == "r" or context == "read":
             filepath = raw_input("Input file path (/etc/passwd) : ") or "/etc/passwd"
             webshell.read_file(filepath)
