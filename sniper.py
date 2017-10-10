@@ -68,6 +68,12 @@ def main():
         Log.error("The webshell cannot work...")
         exit(2)
 
+
+    Log.info("recording this webshell to the log file...")
+    with open("Webshell.txt", "a+") as f:
+        log_content = "%s => %s => %s\n" % (url, method, password)
+        f.write(log_content)
+
     main_help()
 
     while True:

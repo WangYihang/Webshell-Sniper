@@ -32,6 +32,16 @@ class WebShell():
             self.kernel_version = self.get_kernel_version()
             self.print_info()
 
+    '''
+    def get_self_content(self):
+        result = self.php_code_exec_token("var_dump(readfile(__FILE__);")
+        print result
+        if result[0]:
+            content = result[1]
+            return content
+        return False
+        '''
+
     def get_webroot(self):
         return self.php_code_exec_token("echo $_SERVER['DOCUMENT_ROOT']")
 
