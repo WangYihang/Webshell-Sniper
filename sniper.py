@@ -94,9 +94,9 @@ def main():
         elif context == "p" or context == "print":
             webshell.print_info()
         elif context == "pv" or context == "php_version":
-            webshell.get_php_version()
+            Log.success(webshell.get_php_version())
         elif context == "kv" or context == "kernel_version":
-            webshell.get_kernel_version()
+            Log.success(webshell.get_kernel_version())
         elif context == "c" or context == "config":
             Log.info("Detacting config files...")
             webshell.get_config_file()
