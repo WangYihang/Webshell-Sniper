@@ -32,6 +32,24 @@ class WebShell():
             self.kernel_version = self.get_kernel_version()
             self.print_info()
 
+    def php_code_exec(self, code):
+        # TODO : 自己实现这个函数
+        code = "ob_start('ob_gzip');" + code + "ob_end_flush();"
+        try:
+            if self.method == "POST":
+                data = {self.password:code}
+                response = requests.post(self.url, data=data)
+            elif self.method == "GET":
+                params = {self.password:code}
+                response = requests.get(self.url, params=params)
+            else:
+                return (False, "Unsupported method!")
+            content = response.text
+            return (True, content)
+        except:
+            Log.error("The connection is aborted!")
+            return (False, "The connection is aborted!")
+
     '''
     def get_self_content(self):
         result = self.php_code_exec_token("var_dump(readfile(__FILE__);")
@@ -310,23 +328,6 @@ class WebShell():
         else:
             return (False, content)
 
-    def php_code_exec(self, code):
-        # TODO : 自己实现这个函数
-        code = "ob_start('ob_gzip');" + code + "ob_end_flush();"
-        try:
-            if self.method == "POST":
-                data = {self.password:code}
-                response = requests.post(self.url, data=data)
-            elif self.method == "GET":
-                params = {self.password:code}
-                response = requests.get(self.url, params=params)
-            else:
-                return (False, "Unsupported method!")
-            content = response.text
-            return (True, content)
-        except:
-            Log.error("The connection is aborted!")
-            return (False, "The connection is aborted!")
 
     def auto_exec_print(self, command):
         result = self.auto_exec(command)
