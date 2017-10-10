@@ -208,6 +208,15 @@ class WebShell():
         token = random_string(32, string.letters)
         Log.info("Using challenge flag : [%s]" % (flag))
         Log.info("Using token : [%s]" % (token))
+        code = "echo '%s'; echo '%s'; echo '%s';" % (token, flag, token)
+        result = self.php_code_exec(code)
+        if result[0]:
+            content = result[1]
+            for i in content.split(token):
+                if i == flag:
+                    return True
+        return False
+        '''
         method = string.upper(method)
         if method == "POST" or method == "REQUEST":
             Log.info("Using POST method...")
@@ -224,10 +233,7 @@ class WebShell():
             return False
         content = response.content
         # Log.success("The content is :\n " + content)
-        for i in content.split(token):
-            if i == flag:
-                return True
-        return False
+        '''
 
     def check_connection(self, url):
         Log.info("Checking the connection to the webshell...")
@@ -295,7 +301,7 @@ class WebShell():
             return (False, content)
 
     def php_code_exec(self, code):
-        # enable gzip
+        # TODO : 自己实现这个函数
         code = "ob_start('ob_gzip');" + code + "ob_end_flush();"
         try:
             if self.method == "POST":
