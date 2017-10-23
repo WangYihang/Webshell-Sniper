@@ -13,6 +13,9 @@ import sys
 import string
 import os
 import hashlib
+import readline
+import code
+import atexit
 
 salt = "Webshell-Sniper"
 
