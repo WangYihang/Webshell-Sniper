@@ -17,6 +17,7 @@ import readline
 import code
 import atexit
 import json
+import time
 
 salt = "Webshell-Sniper"
 
@@ -71,7 +72,7 @@ def main_help():
     print "        22. [q|quit|exit] : quit"
 
 def main():
-    default_filename = "webshells.json"
+    default_filename = "webshells"
     banner()
     webshells = []
     if len(sys.argv) == 2:
@@ -265,7 +266,7 @@ def main():
                     Log.error("No supported database function!")
         elif context == "q" or context == "quit" or context == "exit":
             Log.info("recording this webshell to the log file...")
-            save_webshells(webshells, default_filename)
+            save_webshells(webshells, "%s_%d.json" % (default_filename, time.time()))
             Log.info("Quiting...")
             break
         else:
