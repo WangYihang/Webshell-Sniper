@@ -18,6 +18,8 @@ import code
 import atexit
 import json
 import time
+import signal
+
 
 salt = "Webshell-Sniper"
 
@@ -71,7 +73,13 @@ def main_help():
     print "        21. [fr] : flag reaper"
     print "        22. [q|quit|exit] : quit"
 
+def signal_handler(ignum, frame):
+    print ""
+    Log.info("Enter : 'q|quit|exit' to shutdown the program!")
+
 def main():
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGTERM, signal_handler)
     default_filename = "webshells"
     banner()
     webshells = []
