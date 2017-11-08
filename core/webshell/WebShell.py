@@ -11,6 +11,7 @@ from core.log import Log
 import requests
 import string
 import os
+import json
 
 class WebShell():
     url = "http://127.0.0.1/c.php"
@@ -26,6 +27,11 @@ class WebShell():
         self.method = method
         self.password = password
         self.init(self.url, self.method, self.password)
+        self.info = {
+            "url":self.url,
+            "method":self.method,
+            "password":self.password
+        }
         if self.working:
             self.webroot = self.get_webroot()[1]
             self.php_version = self.get_php_version()
@@ -40,10 +46,10 @@ class WebShell():
         try:
             if self.method == "POST":
                 data = {self.password:god_code, key:code}
-                response = requests.post(self.url, data=data)
+                response = requests.post(self.url, data=data, timeout=5)
             elif self.method == "GET":
                 params = {self.password:code}
-                response = requests.get(self.url, params=params)
+                response = requests.get(self.url, params=params, timeout=5)
             else:
                 return (False, "Unsupported method!")
             content = response.text
@@ -630,3 +636,14 @@ class WebShell():
                     f.write(log_content)
                 urls.append(webshell_url)
         return urls
+
+    def save(self, filename):
+        webshell_config = json.load(open(filename, "a+"))
+        config = {
+            "url":self.url,
+            "method":self.method,
+            "password":self.password
+        }
+        webshell_config.append(config)
+        json.dump(webshell_config, open(filename, "w"))
+
