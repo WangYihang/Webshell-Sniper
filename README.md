@@ -55,6 +55,7 @@ TODO :
 - [x] flag 收割机
 - [x] socat 反弹一个交互式的 shell (可用 vim 等全屏工具)
 - [x] WebShell批量管理 (使用 重定向命令输入流 来解决)
+- [x] 处理反弹shell的时候的阻塞情况 (暂时使用 requests 的 timeout 解决)
 - [ ] 解决 nc 不能使用 -e 参数的问题
 - [ ] 自动检测更新
 - [ ] 编写多种编码器 , 对消息进行编码
@@ -71,7 +72,6 @@ TODO :
 - [ ] 实现 PDO / mysql_connection 的数据库操作方式 (目前只实现了 mysqli_connection )
 - [ ] 如果命令执行失败 , 则使用可替代的 PHP 函数
 - [ ] 多线程
-- [ ] 处理反弹shell的时候的阻塞情况
 - [ ] 处理 Ctrl + C 信号
 - [ ] 在 HTTP 头部中隐藏信息
 - [ ] 关联 MSF
