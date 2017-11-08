@@ -1,5 +1,5 @@
 [
     {"url": "http://127.0.0.1/c.php", "password": "c", "method": "POST"},
-    {"url": "http://127.0.0.1/d.php", "password": "d", "method": "GET"},
+    {"url": "http://127.0.0.1/d.php", "password": "d", "method": "GET"}
 ]
 
