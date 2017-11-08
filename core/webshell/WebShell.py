@@ -339,6 +339,7 @@ class WebShell():
             content = result[1]
             return (True, content.split(token)[1])
         else:
+            content = "Time out!"
             return (False, content)
 
 
