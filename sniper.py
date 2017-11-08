@@ -20,7 +20,6 @@ import json
 import time
 import signal
 
-
 salt = "Webshell-Sniper"
 
 def md5(content):
