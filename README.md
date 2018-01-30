@@ -24,9 +24,7 @@ pip install -r requirements.txt
 
 [![A Pentest Example via Webshell-Sniper (YouTube)](./images/pentest_0.png)](https://www.youtube.com/watch?v=iAUwb8SSS4s)
 
-[![A Pentest Example via Webshell-Sniper (YouTube)](./images/pentest_1.png)](https://www.youtube.com/watch?v=iAUwb8SSS4s)
-
-####Compatibility :
+#### Compatibility :
 ```
 Enviroment :
     Attacker :
