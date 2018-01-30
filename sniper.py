@@ -15,8 +15,8 @@ import os
 import hashlib
 import readline
 import code
-import atexit
 import json
+import atexit
 import time
 import signal
 
