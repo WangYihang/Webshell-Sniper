@@ -23,6 +23,13 @@ Example :
 
 [![Example Video](https://asciinema.org/a/130893.png)](https://asciinema.org/a/130893)
 
+Installation:
+```
+git clone https://github.com/WangYihang/Webshell-Sniper
+cd Webshell-Sniper
+pip install -r requirements.txt
+```
+
 TODO :
 - [x] 设置默认命令执行目标
 - [x] 获取被禁用的函数列表
