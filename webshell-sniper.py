@@ -40,8 +40,10 @@ def save_webshells(webshells, filename):
 def show_help():
     print "Usage : "
     print "        python %s [URL] [METHOD] [PASSWORD]" % (sys.argv[0])
+    print "        python %s [JSON_FILE]" % (sys.argv[0])
     print "Example : "
     print "        python %s http://127.0.0.1/c.php POST c" % (sys.argv[0])
+    print "        python %s webshells.json" % (sys.argv[0])
     print "Author : "
     print "        WangYihang <wangyihanger@gmail.com>"
     print "Github : "
