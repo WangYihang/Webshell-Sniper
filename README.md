@@ -1,7 +1,7 @@
 # Webshell-Sniper
 A webshell manager via terminal
 
-Usage :
+#### Usage :
 ```
 Usage : 
         python sniper.py [URL] [METHOD] [AUTH]
@@ -11,7 +11,14 @@ Author :
         WangYihang <wangyihanger@gmail.com>
 ```
 
-Example : 
+#### Installation:
+```
+git clone https://github.com/WangYihang/Webshell-Sniper
+cd Webshell-Sniper
+pip install -r requirements.txt
+```
+
+#### Example : 
 
 > v1.1.0
 
@@ -23,14 +30,8 @@ Example :
 
 [![Example Video](https://asciinema.org/a/130893.png)](https://asciinema.org/a/130893)
 
-Installation:
-```
-git clone https://github.com/WangYihang/Webshell-Sniper
-cd Webshell-Sniper
-pip install -r requirements.txt
-```
 
-TODO :
+#### TODO :
 - [x] 设置默认命令执行目标
 - [x] 获取被禁用的函数列表
 - [x] 自定义参数下载文件
