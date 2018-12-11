@@ -3,6 +3,7 @@
 import requests
 import ConfigParser
 import json
+import sys
 import datetime
 
 challenge = "BabyEval"
@@ -19,9 +20,9 @@ def create_game(name, start_time, end_time, bout=300):
         "bout":bout,
     }
     response = requests.post(
-        "http://%s:%s@sirius.lilac.com/api/game/" % (
-            config.get("nginx", "username"),
-            config.get("nginx", "password"),
+        "http://%s:%d/api/game/" % (
+            config.get("sirius", "host"),
+            int(config.get("sirius", "port")),
         ),
         data=data,
         headers={
@@ -32,14 +33,18 @@ def create_game(name, start_time, end_time, bout=300):
 
 def create_challenge(name, category, game_id):
     data = {
-        "game":"http://sirius.lilac.com/api/game/%d/" % (game_id),
+        "game":"http://%s:%d/api/game/%d/" % (
+            config.get("sirius", "host"),
+            int(config.get("sirius", "port")),
+            game_id,
+        ),
         "name": name,
         "category": category,
     }
     response = requests.post(
-        "http://%s:%s@sirius.lilac.com/api/challenge/" % (
-            config.get("nginx", "username"),
-            config.get("nginx", "password"),
+        "http://%s:%d/api/challenge/" % (
+            config.get("sirius", "host"),
+            int(config.get("sirius", "port")),
         ),
         data=data,
         headers={
@@ -50,13 +55,17 @@ def create_challenge(name, category, game_id):
 
 def create_team(name, game_id):
     data = {
-        "game":"http://sirius.lilac.com/api/game/%d/" % (game_id),
+        "game":"http://%s:%d/api/game/%d/" % (
+            config.get("sirius", "host"),
+            int(config.get("sirius", "port")),
+            game_id
+        ),
         "name": name,
     }
     response = requests.post(
-        "http://%s:%s@sirius.lilac.com/api/team/" % (
-            config.get("nginx", "username"),
-            config.get("nginx", "password"),
+        "http://%s:%d/api/team/" % (
+            config.get("sirius", "host"),
+            int(config.get("sirius", "port")),
         ),
         data=data,
         headers={
@@ -70,13 +79,21 @@ def create_target(host, port, team_id, challenge_id, enabled=True):
         "host": host,
         "port": port,
         "enable": True,
-        "team":"http://sirius.lilac.com/api/team/%d/" % (team_id),
-        "challenge":"http://sirius.lilac.com/api/challenge/%d/" % (challenge_id),
+        "team":"http://%s:%d/api/team/%d/" % (
+            config.get("sirius", "host"),
+            int(config.get("sirius", "port")),
+            team_id
+        ),
+        "challenge":"http://%s:%d/api/challenge/%d/" % (
+            config.get("sirius", "host"),
+            int(config.get("sirius", "port")),
+            challenge_id
+        ),
     }
     response = requests.post(
-        "http://%s:%s@sirius.lilac.com/api/target/" % (
-            config.get("nginx", "username"),
-            config.get("nginx", "password"),
+        "http://%s:%d/api/target/" % (
+            config.get("sirius", "host"),
+            int(config.get("sirius", "port")),
         ),
         data=data,
         headers={
@@ -85,11 +102,26 @@ def create_target(host, port, team_id, challenge_id, enabled=True):
     )
     return json.loads(response.content)
 
+def get_game(name):
+    response = requests.get(
+        "http://%s:%d/api/game/" % (
+            config.get("sirius", "host"),
+            int(config.get("sirius", "port")),
+        ),
+        headers={
+            'Authorization': 'Bearer %s' % (config.get("sirius", "token")),
+        }
+    )
+    data = json.loads(response.content)
+    for i in data:
+        if i["name"] == name:
+            return i
+
 def get_team(name):
     response = requests.get(
-        "http://%s:%s@sirius.lilac.com/api/team/" % (
-            config.get("nginx", "username"),
-            config.get("nginx", "password"),
+        "http://%s:%d/api/team/" % (
+            config.get("sirius", "host"),
+            int(config.get("sirius", "port")),
         ),
         headers={
             'Authorization': 'Bearer %s' % (config.get("sirius", "token")),
@@ -102,9 +134,9 @@ def get_team(name):
 
 def get_challenge(name):
     response = requests.get(
-        "http://%s:%s@sirius.lilac.com/api/challenge/" % (
-            config.get("nginx", "username"),
-            config.get("nginx", "password"),
+        "http://%s:%d/api/challenge/" % (
+            config.get("sirius", "host"),
+            int(config.get("sirius", "port")),
         ),
         headers={
             'Authorization': 'Bearer %s' % (config.get("sirius", "token")),
@@ -117,9 +149,9 @@ def get_challenge(name):
 
 def get_targets(challenge_id):
     response = requests.get(
-        "http://%s:%s@sirius.lilac.com/api/target/" % (
-            config.get("nginx", "username"),
-            config.get("nginx", "password"),
+        "http://%s:%d/api/target/" % (
+            config.get("sirius", "host"),
+            int(config.get("sirius", "port")),
         ),
         headers={
             'Authorization': 'Bearer %s' % (config.get("sirius", "token")),
@@ -140,12 +172,16 @@ def create_webshell(target_id, path, filename, password, alive=True, memory=Fals
         "password": password,
         "alive": alive,
         "memory": memory,
-        "target":"http://sirius.lilac.com/api/target/%d/" % (target_id),
+        "target":"http://%s:%d/api/target/%d/" % (
+            config.get("sirius", "host"),
+            int(config.get("sirius", "port")),
+            target_id
+        ),
     }
     response = requests.post(
-        "http://%s:%s@sirius.lilac.com/api/webshell/" % (
-            config.get("nginx", "username"),
-            config.get("nginx", "password"),
+        "http://%s:%d/api/webshell/" % (
+            config.get("sirius", "host"),
+            int(config.get("sirius", "port")),
         ),
         data=data,
         headers={
@@ -154,16 +190,29 @@ def create_webshell(target_id, path, filename, password, alive=True, memory=Fals
     )
     return json.loads(response.content)
 
-game_id = 1
-challenge_id = 1
+def main():
+    if len(sys.argv) != 5:
+        print('python %s [CHALLENGE_NAME] [PATH] [FILENAME] [PASSWORD]') 
+        exit(1)
+    challenge_name = sys.argv[1]
+    path = sys.argv[2]
+    filename = sys.argv[3]
+    password = sys.argv[4]
 
-targets = get_targets(challenge_id)
-for target in targets:
-    print create_webshell(
-        target_id=target["id"],
-        path="/",
-        filename="index.php",
-        password="c",
-        alive=True,
-        memory=False,
-    )
+    game_id = get_game(config.get("game", "name"))['id']
+    challenge_id = get_challenge(challenge_name)['id']
+
+    targets = get_targets(challenge_id)
+    for target in targets:
+        print create_webshell(
+            target_id=target["id"],
+            path="/",
+            filename="index.php",
+            password="c",
+            alive=True,
+            memory=False,
+        )
+
+if __name__ == "__main__":
+    main()
+
