@@ -46,7 +46,7 @@ Enviroment :
 
 #### Addations:
 1. This tool only support to run on unix-like system.
-2. It is able to help user control web server which is running PHP or MySQL
+2. It is able to help user control web server which is running PHP or MySQL.
 
 ## Contributors
 
