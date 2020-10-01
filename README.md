@@ -1,4 +1,4 @@
-# Webshell-Sniper
+#WEBSHELL_SNIPER
 A webshell manager via terminal
 
 [![Backers on Open Collective](https://opencollective.com/Webshell-Sniper/backers/badge.svg)](#backers)
