@@ -56,7 +56,7 @@ class Mysql():
             self.database = database
             Log.success(database)
         else:
-            Log.error("Error occured!")
+            Log.error("Error occurred!")
 
     def get_currect_user(self):
         if self.user != "":
@@ -71,7 +71,7 @@ class Mysql():
             self.user = user
             Log.success(user)
         else:
-            Log.error("Error occured!")
+            Log.error("Error occurred!")
 
     def get_version(self):
         if self.version != "":
@@ -86,7 +86,7 @@ class Mysql():
             self.version = version
             Log.success(version)
         else:
-            Log.error("Error occured!")
+            Log.error("Error occurred!")
 
     def get_databases(self):
         if len(self.databases) != 0:
@@ -101,7 +101,7 @@ class Mysql():
             self.databases = databases
             Log.success("Database : \n" + list2string(databases, "=> [", "]\n"))
         else:
-            Log.error("Error occured!")
+            Log.error("Error occurred!")
 
     def get_table_from_database(self, database):
         code = "error_reporting(0);$h='%s';$u='%s';$p='%s';$c=new Mysqli($h,$u,$p);$c->select_db('%s');$s='select table_name from information_schema.tables where table_schema = \"%s\"';$r=$c->query($s); while($d=$r->fetch_array(MYSQLI_NUM)){echo $d[0].',';}$c->close();" % (self.ip, self.username, self.password, database, database)
@@ -112,7 +112,7 @@ class Mysql():
             tables = content.split(",")[0:-1]
             Log.success("Tables : \n" + list2string(tables, "=> [", "]\n"))
         else:
-            Log.error("Error occured!")
+            Log.error("Error occurred!")
 
     def get_columns_from_table(self, tablename, database):
         code = "error_reporting(0);$h='%s';$u='%s';$p='%s';$c=new Mysqli($h,$u,$p);$c->select_db('%s');$s='select column_name from information_schema.columns where table_name = \"%s\"';$r=$c->query($s); while($d=$r->fetch_array(MYSQLI_NUM)){echo $d[0].',';}$c->close();" % (self.ip, self.username, self.password, database, tablename)
@@ -123,7 +123,7 @@ class Mysql():
             columns = content.split(",")[0:-1]
             Log.success("Columns : \n" + list2string(columns, "=> [", "]\n"))
         else:
-            Log.error("Error occured!")
+            Log.error("Error occurred!")
 
     def sql_exec(self, sql):
         # TODO 数据显示不完整的 BUG
@@ -134,7 +134,7 @@ class Mysql():
             content = result[1]
             Log.success(content.split(",")[0])
         else:
-            Log.error("Error occured!")
+            Log.error("Error occurred!")
 
     def help(self):
         print "Commands : "
