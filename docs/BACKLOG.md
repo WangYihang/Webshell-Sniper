@@ -89,8 +89,9 @@ Effort **S/M/L**, value **🔴 high / 🟡 medium / 🟢 low**.
       shell obfuscated through the encoder layer (base64/b64var/gzip/xor); CLI
       `--generate PASSWORD` writes one and exits. Each variant verified to run
       live. → `features/generate.py`, `cli.py`
-- [ ] **PTY** 🟢 S — reverse-shell PTY upgrade helper (`python -c pty.spawn` +
-      `stty` hints). → `features/revshell.py`
+- [x] **PTY** 🟢 S — `pty_upgrade_hints` prints the full `pty.spawn` + `stty raw
+      -echo` upgrade dance with the local terminal size filled in; REPL `pty`
+      command. → `features/revshell.py`, `repl.py`
 - [ ] **COV** 🟢 M — raise REPL/CLI coverage with cmd2's test harness. → `tests/`
 - [ ] **MISC** 🟢 S — post-inject reachability verify; per-attempt revshell
       timeout; asciinema demo in README; shell-completion install.

