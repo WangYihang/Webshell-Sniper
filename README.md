@@ -98,6 +98,8 @@ supplies the command (for `exec`) or remote path (for `download`).
 | `fr` | Flag reaper (CTF) |
 | `setl` / `setr` | Run unrecognized input on **l**ocalhost / **r**emote target |
 | `exec <cmd>` | Explicitly run a command on the target |
+| `shell` | Interactive pseudo-shell on the target (cwd-aware) |
+| `cd`, `pwd` | Change / show the tracked remote working directory |
 | `help`, `q` | Help / quit |
 
 Anything not recognized as a command is executed as a shell command — locally

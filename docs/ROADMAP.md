@@ -3,15 +3,12 @@
 Improvement plan for the modernized v2 package. Each milestone is independently
 releasable. Legend: effort **S/M/L**, risk **L/M/H**.
 
-## v2.1 — Ergonomics & shell feel
-- [ ] Remote `cwd` tracking + interactive `shell` sub-REPL (client-side `cd`,
-      commands prefixed `cd <cwd> 2>/dev/null;`) — `core/session.py`, `repl.py`,
-      `core/executor.py` — M/L
-- [ ] rich tables for `db` results and recon listings — `log.py`,
-      `features/database.py`, `features/recon.py` — S/L
-- [ ] Download/upload progress bars — `log.py` (rich.progress),
-      `features/files.py` — S/L
-- [ ] cmd2 command categories + path completion — `repl.py` — S/L
+## v2.1 — Ergonomics & shell feel ✅
+- [x] Remote `cwd` tracking + interactive `shell` sub-REPL (client-side `cd`,
+      commands prefixed `cd <cwd> 2>/dev/null;`) — `repl.py`
+- [x] rich tables for `db` results — `log.py`, `repl.py`
+- [x] Download progress bar — `log.py` (rich.progress), `features/files.py`
+- [x] cmd2 command categories + local path completion for `ul` — `repl.py`
 
 ## v2.2 — Evasion & payload encoders
 - [ ] Pluggable encoder layer (base64 / gzip+b64 / xor+b64 / random var names /

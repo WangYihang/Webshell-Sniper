@@ -8,11 +8,18 @@ containing ``[`` etc. — never gets mis-parsed as markup.
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Sequence
+from typing import TypeVar
+
 from rich.console import Console
+from rich.progress import track as _track
+from rich.table import Table
 from rich.text import Text
 
 console = Console()
 error_console = Console(stderr=True)
+
+_T = TypeVar("_T")
 
 
 def _emit(prefix: str, message: object, style: str, *, err: bool = False) -> None:
@@ -43,3 +50,18 @@ def query(message: object) -> None:
 def raw(message: object) -> None:
     """Print server output verbatim, without a prefix or markup parsing."""
     console.print(Text(str(message)))
+
+
+def table(columns: Sequence[str], rows: Iterable[Sequence[object]], title: str | None = None) -> None:
+    """Render tabular data (e.g. SQL results, schema listings)."""
+    grid = Table(title=title, header_style="bold cyan")
+    for column in columns:
+        grid.add_column(str(column), overflow="fold")
+    for row in rows:
+        grid.add_row(*[str(cell) for cell in row])
+    console.print(grid)
+
+
+def track(items: Sequence[_T], description: str = "Working") -> Iterable[_T]:
+    """Wrap a sequence in a progress bar (used for multi-file transfers)."""
+    return _track(items, description=description, console=console)

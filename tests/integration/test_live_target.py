@@ -94,6 +94,19 @@ def test_upload_file(live_shell: WebShell, tmp_path: Path):
     assert "uploaded-" in files.read_file(live_shell, remote)
 
 
+def test_cwd_tracking(php_target: dict[str, object], tmp_path: Path):
+    from webshell_sniper.repl import Repl
+
+    config = Config(output_dir=tmp_path)
+    ws = WebShell(f"{php_target['base']}/index.php", "POST", "c", config)
+    assert ws.connect()
+    repl = Repl([ws], config)
+    repl.do_cd("/tmp")
+    assert repl.cwd == "/tmp"
+    # Subsequent commands run relative to the tracked cwd.
+    assert repl._remote_command(ws, "pwd").strip() == "/tmp"
+
+
 def test_batch_exec_and_info(php_target: dict[str, object], tmp_path: Path):
     from webshell_sniper.batch import run_batch
 

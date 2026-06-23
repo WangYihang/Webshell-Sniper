@@ -122,7 +122,7 @@ def download_tree(
     except WebshellError as exc:
         log.error(f"Listing failed: {exc}")
         return
-    files = [line for line in listing.splitlines() if line and not line.startswith("find:")]
-    log.info(f"{len(files)} file(s) to download.")
-    for remote_path in files:
+    targets = [line for line in listing.splitlines() if line and not line.startswith("find:")]
+    log.info(f"{len(targets)} file(s) to download.")
+    for remote_path in log.track(targets, "Downloading"):
         _download_one(ws, remote_path, _local_path(ws, remote_path, output_dir))
