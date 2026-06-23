@@ -44,6 +44,26 @@ def test_inject_webshell_explicit_password(tmp_path):
     assert results[0][1] == "hunter2"
 
 
+def test_verify_injected_uses_connect(monkeypatch, tmp_path):
+    from webshell_sniper.config import Config
+    from webshell_sniper.core.webshell import WebShell
+
+    calls = {}
+
+    def fake_connect(self):
+        calls["url"] = self.url
+        calls["pw"] = self.password
+        self.reason = None
+        return True
+
+    monkeypatch.setattr(WebShell, "connect", fake_connect)
+
+    ws = FakeWS()
+    ws.transport.config = Config(output_dir=tmp_path)
+    assert inject.verify_injected(ws, "http://t/.x.php", "pw123") is True
+    assert calls == {"url": "http://t/.x.php", "pw": "pw123"}
+
+
 def test_inject_memory_webshell_records(tmp_path):
     inject.inject_memory_webshell(FakeWS(), "mpw", ["/var/www/html"], output_dir=tmp_path)
     record = (tmp_path / "injected_webshells.txt").read_text()

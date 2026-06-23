@@ -93,8 +93,10 @@ Effort **S/M/L**, value **🔴 high / 🟡 medium / 🟢 low**.
       -echo` upgrade dance with the local terminal size filled in; REPL `pty`
       command. → `features/revshell.py`, `repl.py`
 - [ ] **COV** 🟢 M — raise REPL/CLI coverage with cmd2's test harness. → `tests/`
-- [ ] **MISC** 🟢 S — post-inject reachability verify; per-attempt revshell
-      timeout; asciinema demo in README; shell-completion install.
+- [x] **MISC** 🟢 S — post-inject reachability verify (`verify_injected`, used by
+      `aiw`); per-attempt revshell timeout (`attempt_timeout`); README documents
+      output/config/session/PTY and CLI shell-completion (argcomplete). (Only the
+      asciinema *recording* itself is left — needs a live capture.)
 
 ## Non-goals
 Multi-language targets (JSP/ASPX/Java) — would require abstracting a language

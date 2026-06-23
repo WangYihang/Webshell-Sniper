@@ -120,15 +120,36 @@ by default, or on the target after `setr`. cmd2 gives you history (↑/↓),
 
 - Payloads are encoded and `eval`'d server-side, so quotes, newlines and binary
   data survive transport intact (no fragile string interpolation).
-- Choose the wire encoding with `--encoder {base64,gzip,xor}`: `gzip`
+- Choose the wire encoding with `--encoder {base64,b64var,gzip,xor}`: `gzip`
   (`gzinflate`) shrinks and reshapes the body; `xor` randomizes the key and
-  decoder variable names every request to defeat static signatures.
+  decoder variable names every request; `b64var` builds `base64_decode` from
+  fragments and calls it indirectly so the `eval(base64_decode(` signature never
+  appears. `--split N` spreads each payload across N request params (PHP eval
+  shells) to evade per-parameter size limits and single-field signatures.
 - Command execution automatically picks the first **non-disabled** function from
   `system → passthru → shell_exec → exec → popen → proc_open`, so a target that
   disables `system()` still works.
 - `--lang` selects the target shell type: `php` (eval, default) or `command`
   for command-only shells with no `eval` (e.g. a JSP `Runtime.exec` shell).
   Language specifics live behind a `Backend` abstraction (`docs/ARCHITECTURE.md`).
+- `--generate PASSWORD` writes a ready-to-plant PHP shell (obfuscated with the
+  chosen `--encoder`) and exits.
+
+## Output, config & sessions
+
+- `--output {console,quiet,json}` selects the renderer: `quiet` prints only real
+  output and errors (good for piping); `json` emits one machine-readable array.
+- Settings layer **defaults < `~/.config/webshell-sniper/config.toml` <
+  `WEBSHELL_SNIPER_*` env vars < CLI flags** (`--config` overrides the path).
+- The interactive REPL has tab-completion (via cmd2) and a session model: `save`
+  snapshots shells/cwd/history, `hist` shows recorded commands, and
+  `--session FILE` resumes a saved snapshot. `pty` prints the steps to upgrade a
+  dumb reverse shell to a full PTY.
+
+<!-- TODO: asciinema demo recording -->
+For CLI tab-completion outside the REPL, install
+[`argcomplete`](https://pypi.org/project/argcomplete/) and run
+`eval "$(register-python-argcomplete webshell-sniper)"`.
 
 ## Local test target
 
