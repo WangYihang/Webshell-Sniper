@@ -92,7 +92,9 @@ Effort **S/M/L**, value **🔴 high / 🟡 medium / 🟢 low**.
 - [x] **PTY** 🟢 S — `pty_upgrade_hints` prints the full `pty.spawn` + `stty raw
       -echo` upgrade dance with the local terminal size filled in; REPL `pty`
       command. → `features/revshell.py`, `repl.py`
-- [ ] **COV** 🟢 M — raise REPL/CLI coverage with cmd2's test harness. → `tests/`
+- [x] **COV** 🟢 M — offline REPL command tests (fake WebShell), recon + CLI
+      tests; total coverage 71% → 77% (repl 30→49%, recon 31→90%, cli 77→89%),
+      gate raised 60 → 70. → `tests/unit/test_repl.py`, `test_cli.py`, `ci.yml`
 - [x] **MISC** 🟢 S — post-inject reachability verify (`verify_injected`, used by
       `aiw`); per-attempt revshell timeout (`attempt_timeout`); README documents
       output/config/session/PTY and CLI shell-completion (argcomplete). (Only the

@@ -80,6 +80,32 @@ def test_recon_find_writable_dirs_filters_errors():
     assert recon.find_writable_dirs(ws) == ["/var/www/html", "/var/www/html/up"]
 
 
+def test_recon_find_writable_php():
+    ws = FakeWS(run_cmd_ret="/var/www/a.php\nfind: bad\n/var/www/b.php\n")
+    assert recon.find_writable_php(ws) == ["/var/www/a.php", "/var/www/b.php"]
+
+
+def test_recon_find_config_files_dedupes_per_keyword():
+    ws = FakeWS(run_cmd_ret="/var/www/config.php\n")
+    found = recon.find_config_files(ws, ["config"])
+    assert found == ["/var/www/config.php"]
+
+
+def test_recon_find_suid_binaries_aggregates():
+    ws = FakeWS(run_cmd_ret="-rwsr-xr-x 1 root root /usr/bin/passwd\n")
+    found = recon.find_suid_binaries(ws)
+    assert any("passwd" in f for f in found)
+
+
+def test_recon_get_disabled_functions():
+    class WS(FakeWS):
+        def __init__(self):
+            super().__init__()
+            self.executor = SimpleNamespace(disabled_functions={"system", "exec"})
+
+    assert recon.get_disabled_functions(WS()) == {"system", "exec"}
+
+
 def test_download_path_traversal_is_flattened(tmp_path):
     base = (tmp_path / "t").resolve()
     sneaky = _local_path(FakeWS(), "/../../../../etc/passwd", tmp_path)

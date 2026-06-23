@@ -35,4 +35,4 @@ jobs:
         run: uv run mypy
 
       - name: Test (pytest + coverage gate)
-        run: uv run pytest -q --cov=webshell_sniper --cov-report=term-missing --cov-fail-under=60
+        run: uv run pytest -q --cov=webshell_sniper --cov-report=term-missing --cov-fail-under=70
