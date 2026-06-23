@@ -64,7 +64,7 @@ warn_redundant_casts = true
 no_implicit_optional = true
 
 [[tool.mypy.overrides]]
-module = ["fuse", "cmd2.*"]
+module = ["fuse", "cmd2.*", "tomllib", "tomli"]
 ignore_missing_imports = true
 
 # The FUSE port is optional and hard to type against fusepy's dynamic API.

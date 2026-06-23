@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 
 from . import __version__, batch, encoders, log
-from .config import Config
+from .config import resolve_config
 from .core.webshell import WebShell
 from .repl import Repl
 from .session import Session
@@ -35,19 +35,22 @@ def _build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "--session", help="restore a saved session JSON (shells + cwd) and resume the REPL"
     )
-    parser.add_argument("--timeout", type=float, default=15.0, help="HTTP timeout (default 15s)")
+    parser.add_argument("--timeout", type=float, help="HTTP timeout (default 15s)")
     parser.add_argument("--proxy", help="proxy URL, e.g. http://127.0.0.1:8080")
     parser.add_argument(
         "--insecure", action="store_true", help="do not verify TLS certificates"
     )
     parser.add_argument("--user-agent", help="fixed User-Agent (default: rotate a small pool)")
     parser.add_argument(
-        "--encoder", choices=sorted(encoders.ENCODERS), default="base64",
+        "--encoder", choices=sorted(encoders.ENCODERS),
         help="payload encoding on the wire (default: base64)",
     )
     parser.add_argument(
-        "--lang", choices=("php", "command"), default="php",
+        "--lang", choices=("php", "command"),
         help="target shell type: php (eval) or command (e.g. JSP Runtime.exec)",
+    )
+    parser.add_argument(
+        "--config", help="path to a config TOML (default: ~/.config/webshell-sniper/config.toml)"
     )
     parser.add_argument(
         "--batch", choices=batch.ACTIONS,
@@ -57,7 +60,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--arg", help="argument for --batch (the command for exec, the path for download)"
     )
     parser.add_argument(
-        "--workers", type=int, default=1,
+        "--workers", type=int,
         help="process multiple shells concurrently (default 1 = sequential)",
     )
     parser.add_argument(
@@ -68,7 +71,7 @@ def _build_parser() -> argparse.ArgumentParser:
         "--debug", action="store_true", help="trace the PHP sent and raw responses"
     )
     parser.add_argument(
-        "-o", "--output-dir", type=Path, default=Path.cwd(),
+        "-o", "--output-dir", type=Path,
         help="where downloads and logs are written (default: cwd)",
     )
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
@@ -101,17 +104,20 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _run(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
-    config = Config(
-        timeout=args.timeout,
-        proxy=args.proxy,
-        verify_ssl=not args.insecure,
-        user_agent=args.user_agent,
-        encoder=args.encoder,
-        lang=args.lang,
-        workers=args.workers,
-        debug=args.debug,
-        output_dir=args.output_dir,
+    config = resolve_config(
+        {
+            "timeout": args.timeout,
+            "proxy": args.proxy,
+            "verify_ssl": False if args.insecure else None,
+            "user_agent": args.user_agent,
+            "encoder": args.encoder,
+            "lang": args.lang,
+            "workers": args.workers,
+            "output_dir": args.output_dir,
+        },
+        config_path=Path(args.config) if args.config else None,
     )
+    config.debug = args.debug  # debug is a CLI-only flag, not layered
     config.output_dir.mkdir(parents=True, exist_ok=True)
 
     restored: Session | None = None

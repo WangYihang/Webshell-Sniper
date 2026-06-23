@@ -64,8 +64,9 @@ Effort **S/M/L**, value **🔴 high / 🟡 medium / 🟢 low**.
       commands, and `--session FILE` resumes a snapshot. → `session.py`, `repl.py`, `cli.py`
 
 ## P2 — capability + DX
-- [ ] **CFG** 🟡 S — config file (`~/.config/webshell-sniper/config.toml`) +
-      `WEBSHELL_SNIPER_*` env vars layered under CLI flags. → `config.py`, `cli.py`
+- [x] **CFG** 🟡 S — `resolve_config` layers defaults < `config.toml`
+      (`~/.config/webshell-sniper/`, XDG-aware) < `WEBSHELL_SNIPER_*` env <
+      CLI flags, with type coercion; `--config` overrides the path. → `config.py`, `cli.py`
 - [ ] **DBFS** 🟡 M — DB ↔ filesystem (MySQL `LOAD_FILE`/`INTO OUTFILE`, PG
       `COPY`) and full-table export to local CSV. → `features/database.py`
 - [x] **CMDSHELL** 🟡 M — command-only (non-`eval`) shells: done via
