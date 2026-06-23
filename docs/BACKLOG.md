@@ -38,8 +38,11 @@ Effort **S/M/L**, value **🔴 high / 🟡 medium / 🟢 low**.
       (literal/sentinel/exec-builders/disabled-fns/webroot/version); `Executor`,
       `core/php.py` and `core/webshell` route through it. Behaviour-preserving.
       → `core/backends/`
-- [ ] **LANG-FS** 🔴 M — express files/recon via backend primitives
-      (`read_file`/`write_file`/`list_dir`/…) so they become language-agnostic.
+- [x] **LANG-FS** 🔴 M — files/recon expressed via backend FS primitives on the
+      `Executor` (`fs_read_text`/`fs_write`/`fs_list`/…); PHP emits eval code,
+      command-only shells fall back to POSIX commands. `features/files.py` no
+      longer contains a PHP literal. → `core/backends/`, `core/executor.py`,
+      `features/files.py`
 - [ ] **ENC2** 🟡 M — split encoders into a byte transform + a per-backend
       decode expression (evasion works on every backend). → `encoders.py`, `Backend`
 - [x] **LANG-2** 🟡 L — `CommandBackend` (command-only shells) + `--lang

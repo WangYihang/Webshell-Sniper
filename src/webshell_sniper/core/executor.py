@@ -17,6 +17,7 @@ Two responsibilities:
 from __future__ import annotations
 
 import base64
+import shlex
 
 from ..encoders import Encoder, base64_encode
 from ..exceptions import ExecutionFailed, NoExecFunction, WebshellError
@@ -128,3 +129,143 @@ class Executor:
         function = self._resolve_exec_function()
         b64 = self._b64(f"{command} 2>&1")
         return self.run_php(self.backend.command_builders()[function](b64))
+
+    # -- filesystem primitives -------------------------------------------------
+    # Language-agnostic file operations: prefer the backend's evaluated-code
+    # form; when the backend can't express it (e.g. a command-only shell), fall
+    # back to a POSIX-shell command. Features call these instead of emitting
+    # raw PHP, so ``features/files.py`` works on every backend.
+
+    def fs_read_text(self, path: str) -> str:
+        code = self.backend.read_text_code(path)
+        if code is not None:
+            return self.run_php(code)
+        return self.run_command(f"cat -- {shlex.quote(path)}")
+
+    def fs_read_bytes(self, path: str) -> bytes:
+        code = self.backend.read_b64_code(path)
+        raw = self.run_php(code) if code is not None else self.run_command(
+            f"base64 {shlex.quote(path)}"
+        )
+        return base64.b64decode(raw)
+
+    def fs_read_range(self, path: str, offset: int, length: int) -> bytes:
+        code = self.backend.read_range_code(path, offset, length)
+        if code is not None:
+            raw = self.run_php(code)
+        else:
+            raw = self.run_command(
+                f"tail -c +{offset + 1} {shlex.quote(path)} | head -c {length} | base64"
+            )
+        return base64.b64decode(raw)
+
+    def fs_size(self, path: str) -> int:
+        code = self.backend.size_code(path)
+        raw = self.run_php(code) if code is not None else self.run_command(
+            f"wc -c < {shlex.quote(path)}"
+        )
+        try:
+            return int(raw.strip())
+        except ValueError:
+            return -1
+
+    def fs_md5(self, path: str) -> str:
+        code = self.backend.md5_code(path)
+        if code is not None:
+            return self.run_php(code).strip()
+        out = self.run_command(f"md5sum {shlex.quote(path)}").split()
+        return out[0] if out else ""
+
+    def fs_exists(self, path: str) -> bool:
+        code = self.backend.exists_code(path)
+        raw = self.run_php(code) if code is not None else self.run_command(
+            f"[ -e {shlex.quote(path)} ] && echo 1 || echo 0"
+        )
+        return raw.strip() == "1"
+
+    def fs_is_dir(self, path: str) -> bool:
+        code = self.backend.is_dir_code(path)
+        raw = self.run_php(code) if code is not None else self.run_command(
+            f"[ -d {shlex.quote(path)} ] && echo 1 || echo 0"
+        )
+        return raw.strip() == "1"
+
+    def fs_write(self, path: str, data: bytes) -> bool:
+        b64 = base64.b64encode(data).decode()
+        code = self.backend.write_code(path, b64)
+        if code is not None:
+            return "OK" in self.run_php(code)
+        return "OK" in self.run_command(
+            f"echo {b64} | base64 -d > {shlex.quote(path)} && echo OK || echo FAIL"
+        )
+
+    def fs_delete(self, path: str | None) -> bool:
+        code = self.backend.delete_code(path)
+        if code is not None:
+            return "OK" in self.run_php(code)
+        if not path:  # command shells have no __FILE__ self-reference
+            return False
+        return "OK" in self.run_command(
+            f"rm -f -- {shlex.quote(path)} && echo OK || echo FAIL"
+        )
+
+    def fs_move(self, src: str, dst: str) -> bool:
+        code = self.backend.move_code(src, dst)
+        if code is not None:
+            return "OK" in self.run_php(code)
+        return "OK" in self.run_command(
+            f"mv -- {shlex.quote(src)} {shlex.quote(dst)} && echo OK || echo FAIL"
+        )
+
+    def fs_copy(self, src: str, dst: str) -> bool:
+        code = self.backend.copy_code(src, dst)
+        if code is not None:
+            return "OK" in self.run_php(code)
+        return "OK" in self.run_command(
+            f"cp -- {shlex.quote(src)} {shlex.quote(dst)} && echo OK || echo FAIL"
+        )
+
+    def fs_mkdir(self, path: str) -> bool:
+        code = self.backend.mkdir_code(path)
+        if code is not None:
+            return "OK" in self.run_php(code)
+        return "OK" in self.run_command(
+            f"mkdir -p -- {shlex.quote(path)} && echo OK || echo FAIL"
+        )
+
+    def fs_chmod(self, path: str, mode: str) -> bool:
+        if not mode.isdigit():
+            raise ValueError("mode must be octal digits, e.g. 755")
+        code = self.backend.chmod_code(path, mode)
+        if code is not None:
+            return "OK" in self.run_php(code)
+        return "OK" in self.run_command(
+            f"chmod {mode} -- {shlex.quote(path)} && echo OK || echo FAIL"
+        )
+
+    def fs_list(self, path: str) -> list[tuple[str, int, str, int, str]]:
+        """List a directory as ``(name, size, octal-perm, mtime, type)`` rows."""
+        code = self.backend.list_dir_code(path)
+        if code is not None:
+            raw = self.run_php(code)
+        else:
+            raw = self.run_command(
+                f"find {shlex.quote(path)} -maxdepth 1 -mindepth 1 "
+                r"-printf '%f\037%s\037%m\037%T@\037%y\036' 2>/dev/null"
+            )
+        rows: list[tuple[str, int, str, int, str]] = []
+        for row in raw.split("\x1e"):
+            parts = row.split("\x1f")
+            if len(parts) < 5:
+                continue
+            name, size, mode, mtime, kind = parts[:5]
+            rows.append(
+                (
+                    name,
+                    int(size or 0),
+                    mode or "0",
+                    int(float(mtime or 0)),
+                    "d" if kind == "d" else "-",
+                )
+            )
+        return rows

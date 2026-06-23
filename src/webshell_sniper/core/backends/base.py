@@ -45,3 +45,58 @@ class Backend(ABC):
     @abstractmethod
     def version_code(self) -> str | None:
         """Code printing the runtime version, or None if not obtainable by eval."""
+
+    # -- filesystem primitives -------------------------------------------------
+    # Each returns language code that *prints* the result, or ``None`` when the
+    # backend cannot express it as evaluated code — the executor then falls back
+    # to a POSIX-shell command. This is what lets ``features/files.py`` stay
+    # language-agnostic (it asks the executor, never emits a fragment itself).
+    #
+    # Result-encoding contract (so the executor can parse uniformly):
+    #   * boolean ops (write/delete/move/copy/mkdir/chmod) print ``OK``/``FAIL``
+    #   * predicate ops (exists/is_dir) print ``1``/``0``
+    #   * read_b64/read_range print base64 of the (sub)file's bytes
+    #   * list_dir prints rows ``name US size US octal-perm US mtime US type RS``
+    #     where US=\x1f, RS=\x1e and type is ``d`` for a directory else ``-``.
+
+    def read_text_code(self, path: str) -> str | None:
+        return None
+
+    def read_b64_code(self, path: str) -> str | None:
+        return None
+
+    def read_range_code(self, path: str, offset: int, length: int) -> str | None:
+        return None
+
+    def size_code(self, path: str) -> str | None:
+        return None
+
+    def md5_code(self, path: str) -> str | None:
+        return None
+
+    def exists_code(self, path: str) -> str | None:
+        return None
+
+    def is_dir_code(self, path: str) -> str | None:
+        return None
+
+    def write_code(self, path: str, data_b64: str) -> str | None:
+        return None
+
+    def delete_code(self, path: str | None) -> str | None:
+        return None
+
+    def list_dir_code(self, path: str) -> str | None:
+        return None
+
+    def move_code(self, src: str, dst: str) -> str | None:
+        return None
+
+    def copy_code(self, src: str, dst: str) -> str | None:
+        return None
+
+    def mkdir_code(self, path: str) -> str | None:
+        return None
+
+    def chmod_code(self, path: str, mode: str) -> str | None:
+        return None
