@@ -42,22 +42,28 @@ class Executor:
     def _b64(data: str) -> str:
         return base64.b64encode(data.encode()).decode()
 
-    def run_php(self, code: str) -> str:
-        """Run a snippet of target-language code and return whatever it prints.
-
-        ``code`` is a sequence of statements *without* a trailing terminator
-        (the backend's sentinel adds one).
-        """
-        token = random_token()
-        code = code.strip().rstrip(";")
-        wrapped = self.backend.sentinel(token, code)
-        body = self.transport.send(self._encode(wrapped))
+    def _extract(self, body: str, token: str) -> str:
         parts = body.split(token)
         if len(parts) < 3:
             raise ExecutionFailed(
                 "Sentinel not found in response — the payload likely errored out."
             )
         return parts[1]
+
+    def run_php(self, code: str) -> str:
+        """Run a snippet of target-language code and return whatever it prints.
+
+        ``code`` is a sequence of statements *without* a trailing terminator
+        (the backend's sentinel adds one). Only available on eval-capable
+        backends.
+        """
+        if not self.backend.supports_eval:
+            raise ExecutionFailed(f"the {self.backend.name} backend cannot evaluate code")
+        token = random_token()
+        code = code.strip().rstrip(";")
+        wrapped = self.backend.sentinel(token, code)
+        body = self.transport.send(self._encode(wrapped))
+        return self._extract(body, token)
 
     @property
     def disabled_functions(self) -> set[str]:
@@ -114,6 +120,11 @@ class Executor:
 
     def run_command(self, command: str) -> str:
         """Run an OS command (stderr merged into stdout) and return its output."""
+        if not self.backend.supports_eval:
+            # Command shell: the parameter *is* a shell command; sentinel-wrap it.
+            token = random_token()
+            body = self.transport.send(self.backend.sentinel(token, f"{command} 2>&1"))
+            return self._extract(body, token)
         function = self._resolve_exec_function()
         b64 = self._b64(f"{command} 2>&1")
         return self.run_php(self.backend.command_builders()[function](b64))

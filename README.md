@@ -126,6 +126,9 @@ by default, or on the target after `setr`. cmd2 gives you history (↑/↓),
 - Command execution automatically picks the first **non-disabled** function from
   `system → passthru → shell_exec → exec → popen → proc_open`, so a target that
   disables `system()` still works.
+- `--lang` selects the target shell type: `php` (eval, default) or `command`
+  for command-only shells with no `eval` (e.g. a JSP `Runtime.exec` shell).
+  Language specifics live behind a `Backend` abstraction (`docs/ARCHITECTURE.md`).
 
 ## Local test target
 

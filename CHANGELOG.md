@@ -23,6 +23,10 @@ EOL since 2020) and ships as an installable package.
 - File **upload** (`ul` command / `files.upload`) — v1 shipped only an empty
   `upload_file.py` stub.
 - `rm` command / self-removal (`unlink(__FILE__)`) for engagement cleanup.
+- **Language `Backend` abstraction** (`docs/ARCHITECTURE.md`): PHP specifics
+  factored out so the executor is language-agnostic, plus a **command-shell**
+  backend and `--lang {php,command}` for non-`eval` shells (e.g. JSP
+  `Runtime.exec`), validated against a JSP/Tomcat benchmark target.
 - **Plugin system**: third-party REPL command sets discovered via the
   `webshell_sniper.commands` entry-point group (see `docs/plugins.md`).
 - **Concurrent** multi-shell operations via `--workers` (batch and the REPL).

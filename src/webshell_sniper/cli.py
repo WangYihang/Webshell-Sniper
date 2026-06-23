@@ -42,6 +42,10 @@ def _build_parser() -> argparse.ArgumentParser:
         help="payload encoding on the wire (default: base64)",
     )
     parser.add_argument(
+        "--lang", choices=("php", "command"), default="php",
+        help="target shell type: php (eval) or command (e.g. JSP Runtime.exec)",
+    )
+    parser.add_argument(
         "--batch", choices=batch.ACTIONS,
         help="run an action across all shells non-interactively, write a JSON report, then exit",
     )
@@ -93,6 +97,7 @@ def main(argv: list[str] | None = None) -> int:
         verify_ssl=not args.insecure,
         user_agent=args.user_agent,
         encoder=args.encoder,
+        lang=args.lang,
         workers=args.workers,
         debug=args.debug,
         output_dir=args.output_dir,

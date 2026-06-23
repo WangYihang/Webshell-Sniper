@@ -42,9 +42,9 @@ Effort **S/M/L**, value **🔴 high / 🟡 medium / 🟢 low**.
       (`read_file`/`write_file`/`list_dir`/…) so they become language-agnostic.
 - [ ] **ENC2** 🟡 M — split encoders into a byte transform + a per-backend
       decode expression (evasion works on every backend). → `encoders.py`, `Backend`
-- [ ] **LANG-2** 🟡 L — add a second backend (generic command-only shell, then
-      JSP) + `--lang`; folds in **CMDSHELL** (shell-type as backend variant).
-      *(benchmark target ready: `jsp` service + `tests/benchmark/test_jsp.py`)*
+- [x] **LANG-2** 🟡 L — `CommandBackend` (command-only shells) + `--lang
+      {php,command}`; validated against the live JSP/Tomcat target. Folds in
+      **CMDSHELL**. → `core/backends/command.py`, `core/executor.py`, `cli.py`
 - [ ] **CHANNEL** 🟡 S — formalize `Transport` as a `Channel` protocol. → `core/transport.py`
 - [ ] **RENDER** 🟡 M — `Renderer` (rich/json/quiet); features return structured
       data (subsumes **PURE**). → `log.py`, `features/*`, `repl.py`, `batch.py`
@@ -55,8 +55,8 @@ Effort **S/M/L**, value **🔴 high / 🟡 medium / 🟢 low**.
       `WEBSHELL_SNIPER_*` env vars layered under CLI flags. → `config.py`, `cli.py`
 - [ ] **DBFS** 🟡 M — DB ↔ filesystem (MySQL `LOAD_FILE`/`INTO OUTFILE`, PG
       `COPY`) and full-table export to local CSV. → `features/database.py`
-- [ ] **CMDSHELL** 🟡 M — support command-only (non-`eval`) shells, e.g.
-      `system($_GET['c'])`; abstract a shell type. → `core/executor.py`, `core/transport.py`, CLI `--shell-type`
+- [x] **CMDSHELL** 🟡 M — command-only (non-`eval`) shells: done via
+      `CommandBackend` + `--lang command` (see LANG-2).
 - [ ] **ENC+** 🟡 M — more evasion: encoders that avoid the literal
       `eval(base64_decode(` signature (assert/variable-function), and a
       multi-parameter chunked payload. → `encoders.py`, `core/transport.py`

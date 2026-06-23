@@ -18,6 +18,9 @@ class Backend(ABC):
     name: str = "abstract"
     # Coarse feature flags; features gate language-specific behaviour on these.
     capabilities: frozenset[str] = frozenset()
+    # Whether the shell can evaluate arbitrary code in its language (PHP eval).
+    # Command-only shells (e.g. a JSP Runtime.exec shell) set this False.
+    supports_eval: bool = True
 
     @abstractmethod
     def literal(self, value: str) -> str:
@@ -36,9 +39,9 @@ class Backend(ABC):
         """Code printing the disabled-function list, or None if not applicable."""
 
     @abstractmethod
-    def webroot_code(self) -> str:
-        """Code printing the document root."""
+    def webroot_code(self) -> str | None:
+        """Code printing the document root, or None if not obtainable by eval."""
 
     @abstractmethod
-    def version_code(self) -> str:
-        """Code printing the language runtime version."""
+    def version_code(self) -> str | None:
+        """Code printing the runtime version, or None if not obtainable by eval."""

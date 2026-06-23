@@ -15,6 +15,8 @@ from dataclasses import dataclass
 from ..config import Config
 from ..encoders import get_encoder
 from ..exceptions import ConnectionFailed, ExecutionFailed, WebshellError
+from ..utils.strings import random_token
+from .backends import get_backend
 from .executor import Executor
 from .transport import Transport
 
@@ -34,7 +36,9 @@ class WebShell:
         config = config or Config()
         self.info = WebShellInfo(url, method, password.strip())
         self.transport = Transport(url, method, self.info.password, config)
-        self.executor = Executor(self.transport, get_encoder(config.encoder))
+        self.executor = Executor(
+            self.transport, get_encoder(config.encoder), get_backend(config.lang)
+        )
         self.working = False
         self.reason: str | None = None
         self._webroot: str | None = None
@@ -75,9 +79,13 @@ class WebShell:
             self.reason = "unreachable (no HTTP response)"
             return self.working
         try:
-            # run_php raises unless both sentinels come back, which only
-            # happens if our PHP truly executed — a robust liveness check.
-            if self.run_php("echo 'alive'").strip() != "alive":
+            # A successful sentinel round-trip means our payload truly executed.
+            if self.executor.backend.supports_eval:
+                ok = self.run_php("echo 'alive'").strip() == "alive"
+            else:
+                token = random_token(8)
+                ok = token in self.run_command(f"echo {token}")
+            if not ok:
                 self.working = False
                 self.reason = "reachable, but the payload did not execute (wrong password?)"
                 return self.working
@@ -94,13 +102,21 @@ class WebShell:
     @property
     def webroot(self) -> str:
         if self._webroot is None:
-            self._webroot = self.run_php(self.executor.backend.webroot_code()).strip()
+            code = self.executor.backend.webroot_code()
+            try:
+                self._webroot = self.run_php(code).strip() if code else ""
+            except WebshellError:
+                self._webroot = ""
         return self._webroot
 
     @property
     def php_version(self) -> str:
         if self._php_version is None:
-            self._php_version = self.run_php(self.executor.backend.version_code()).strip()
+            code = self.executor.backend.version_code()
+            try:
+                self._php_version = self.run_php(code).strip() if code else ""
+            except WebshellError:
+                self._php_version = ""
         return self._php_version
 
     @property

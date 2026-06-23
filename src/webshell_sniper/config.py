@@ -19,6 +19,7 @@ class Config:
     verify_ssl: bool = True
     user_agent: str | None = None
     encoder: str = "base64"
+    lang: str = "php"
     retries: int = 2
     retry_backoff: float = 0.5
     workers: int = 1
