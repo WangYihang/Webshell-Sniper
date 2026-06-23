@@ -34,9 +34,10 @@ Effort **S/M/L**, value **🔴 high / 🟡 medium / 🟢 low**.
       → `features/files.py`, REPL
 
 ## P1.5 — Abstraction (see `ARCHITECTURE.md`)
-- [ ] **LANG** 🔴 M — extract a `Backend` ABC + `PHPBackend` holding every
-      PHP-specific fragment; route `Executor` / `core/php.py` / `core/webshell`
-      through it (behaviour-preserving). → `core/backends/`
+- [x] **LANG** 🔴 M — `Backend` ABC + `PHPBackend` hold every PHP fragment
+      (literal/sentinel/exec-builders/disabled-fns/webroot/version); `Executor`,
+      `core/php.py` and `core/webshell` route through it. Behaviour-preserving.
+      → `core/backends/`
 - [ ] **LANG-FS** 🔴 M — express files/recon via backend primitives
       (`read_file`/`write_file`/`list_dir`/…) so they become language-agnostic.
 - [ ] **ENC2** 🟡 M — split encoders into a byte transform + a per-backend

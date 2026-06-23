@@ -8,10 +8,15 @@ PHP.  Instead emit ``base64_decode('...')`` so the value is opaque on the wire.
 
 from __future__ import annotations
 
-import base64
+from .backends.php import PHPBackend
+
+_PHP = PHPBackend()
 
 
 def php_string(value: str) -> str:
-    """Return a PHP expression that evaluates to ``value`` (a string)."""
-    encoded = base64.b64encode(value.encode()).decode()
-    return f"base64_decode('{encoded}')"
+    """Return a PHP expression that evaluates to ``value`` (a string).
+
+    Thin wrapper over :meth:`PHPBackend.literal`; kept as a module function so
+    the PHP-specific ``features/*`` can import it directly.
+    """
+    return _PHP.literal(value)

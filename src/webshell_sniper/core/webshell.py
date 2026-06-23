@@ -94,13 +94,13 @@ class WebShell:
     @property
     def webroot(self) -> str:
         if self._webroot is None:
-            self._webroot = self.run_php("echo $_SERVER['DOCUMENT_ROOT']").strip()
+            self._webroot = self.run_php(self.executor.backend.webroot_code()).strip()
         return self._webroot
 
     @property
     def php_version(self) -> str:
         if self._php_version is None:
-            self._php_version = self.run_php("echo phpversion()").strip()
+            self._php_version = self.run_php(self.executor.backend.version_code()).strip()
         return self._php_version
 
     @property

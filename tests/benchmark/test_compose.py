@@ -14,6 +14,8 @@ integration tests. If the stack is not reachable on :8080 they skip cleanly.
 
 from __future__ import annotations
 
+import time
+
 import pytest
 import requests
 
@@ -28,9 +30,15 @@ TARGET = "http://127.0.0.1:8080/index.php"
 
 @pytest.fixture(scope="module")
 def bench_shell(tmp_path_factory: pytest.TempPathFactory) -> WebShell:
-    try:
-        requests.get(TARGET, timeout=1)
-    except requests.RequestException:
+    # Poll briefly so a just-started stack isn't falsely reported as down.
+    deadline = time.time() + 20
+    while time.time() < deadline:
+        try:
+            requests.get(TARGET, timeout=1)
+            break
+        except requests.RequestException:
+            time.sleep(1)
+    else:
         pytest.skip("benchmark stack not up — run `docker compose ... up -d --build`")
     config = Config(output_dir=tmp_path_factory.mktemp("bench"))
     ws = WebShell(TARGET, "POST", "c", config)
