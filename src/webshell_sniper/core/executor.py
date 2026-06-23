@@ -23,13 +23,13 @@ from ..encoders import ByteTransform, get_transform
 from ..exceptions import ExecutionFailed, NoExecFunction, WebshellError
 from ..utils.strings import random_token
 from .backends import Backend, PHPBackend
-from .transport import Transport
+from .channel import Channel
 
 
 class Executor:
     def __init__(
         self,
-        transport: Transport,
+        transport: Channel,
         transform: ByteTransform | None = None,
         backend: Backend | None = None,
     ):

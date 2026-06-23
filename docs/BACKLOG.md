@@ -51,7 +51,9 @@ Effort **S/M/L**, value **🔴 high / 🟡 medium / 🟢 low**.
 - [x] **LANG-2** 🟡 L — `CommandBackend` (command-only shells) + `--lang
       {php,command}`; validated against the live JSP/Tomcat target. Folds in
       **CMDSHELL**. → `core/backends/command.py`, `core/executor.py`, `cli.py`
-- [ ] **CHANNEL** 🟡 S — formalize `Transport` as a `Channel` protocol. → `core/transport.py`
+- [x] **CHANNEL** 🟡 S — `Channel` protocol (`send(payload)->str`) the executor
+      depends on; `Transport` is the HTTP implementation. Non-HTTP channels now
+      plug in without touching the executor. → `core/channel.py`, `core/executor.py`
 - [ ] **RENDER** 🟡 M — `Renderer` (rich/json/quiet); features return structured
       data (subsumes **PURE**). → `log.py`, `features/*`, `repl.py`, `batch.py`
 - [ ] **SESSION** 🟢 S — a `Session` object for cwd / shells / history.

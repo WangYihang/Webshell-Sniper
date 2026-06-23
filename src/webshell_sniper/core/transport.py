@@ -26,7 +26,7 @@ _USER_AGENTS = [
 
 
 class Transport:
-    """Send raw PHP to a single webshell endpoint."""
+    """Send raw PHP to a single webshell endpoint (the HTTP :class:`Channel`)."""
 
     def __init__(self, url: str, method: str, password: str, config: Config | None = None):
         self.url = url
