@@ -1,4 +1,0 @@
-json
-readline
-requests
-urllib

