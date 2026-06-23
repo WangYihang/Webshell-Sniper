@@ -100,13 +100,13 @@ venv.bak/
 # mkdocs documentation
 /site
 
-# mypy
+# mypy / ruff
 .mypy_cache/
+.ruff_cache/
 
-# json
-*.json
-
-# logs
+# Runtime artifacts written by webshell-sniper
+webshells_*.json
+injected_webshells.txt
 Webshell.txt
 
 # Idea
