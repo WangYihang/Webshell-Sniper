@@ -83,3 +83,19 @@ def test_remove_file(live_shell: WebShell):
     assert files.file_exists(live_shell, target)
     assert files.remove(live_shell, target)
     assert not files.file_exists(live_shell, target)
+
+
+def test_batch_exec_and_info(php_target: dict[str, object], tmp_path: Path):
+    from webshell_sniper.batch import run_batch
+
+    config = Config(output_dir=tmp_path)
+    ws = WebShell(f"{php_target['base']}/index.php", "POST", "c", config)
+    assert ws.connect()
+
+    execd = run_batch([ws], "exec", "echo batchok", config)
+    assert execd[0]["ok"]
+    assert "batchok" in execd[0]["data"]
+
+    info = run_batch([ws], "info", None, config)
+    assert info[0]["ok"]
+    assert info[0]["data"]["php_version"].startswith(("7.", "8."))

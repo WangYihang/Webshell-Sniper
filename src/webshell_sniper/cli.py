@@ -7,7 +7,7 @@ import json
 import sys
 from pathlib import Path
 
-from . import __version__, log
+from . import __version__, batch, log
 from .config import Config
 from .core.webshell import WebShell
 from .repl import Repl
@@ -37,6 +37,13 @@ def _build_parser() -> argparse.ArgumentParser:
         "--insecure", action="store_true", help="do not verify TLS certificates"
     )
     parser.add_argument("--user-agent", help="fixed User-Agent (default: rotate a small pool)")
+    parser.add_argument(
+        "--batch", choices=batch.ACTIONS,
+        help="run an action across all shells non-interactively, write a JSON report, then exit",
+    )
+    parser.add_argument(
+        "--arg", help="argument for --batch (the command for exec, the path for download)"
+    )
     parser.add_argument(
         "-o", "--output-dir", type=Path, default=Path.cwd(),
         help="where downloads and logs are written (default: cwd)",
@@ -95,6 +102,13 @@ def main(argv: list[str] | None = None) -> int:
     if not webshells:
         log.error("No working webshells, exiting.")
         return 2
+
+    if args.batch:
+        report = batch.run_batch(webshells, args.batch, args.arg, config)
+        path = batch.write_report(report, args.batch, config)
+        ok = sum(1 for entry in report if entry["ok"])
+        log.success(f"Batch '{args.batch}': {ok}/{len(report)} succeeded. Report: {path}")
+        return 0 if ok else 2
 
     log.success(f"{len(webshells)} webshell(s) online. Entering interactive mode.")
     return Repl(webshells, config).cmdloop() or 0
