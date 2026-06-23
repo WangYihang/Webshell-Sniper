@@ -3,6 +3,40 @@
 All notable changes to this project are documented here. This project adheres
 to [Semantic Versioning](https://semver.org/).
 
+## [Unreleased] — v2.6 backlog
+
+Completes the prioritized `docs/BACKLOG.md` (v2.6+) on top of the v2.1–v2.5
+roadmap.
+
+### Added
+- **SOCKS5 pivot** (`socks`): a reGeorg-style local SOCKS5 proxy that relays TCP
+  over HTTP through a planted tunnel endpoint (background relay process + on-disk
+  spool files), so `curl --socks5`/`proxychains`/a browser can reach
+  target-internal hosts. (TUNNEL)
+- **Webshell generation** (`--generate PASSWORD`): emit a PHP shell obfuscated
+  through the encoder layer (base64/b64var/gzip/xor). (GEN)
+- **Evasion**: `b64var` encoder (no `eval(base64_decode(` signature) and
+  `--split N` multi-parameter chunked payloads. (ENC+)
+- **DB ↔ filesystem**: MySQL `LOAD_FILE`/`INTO DUMPFILE`, PostgreSQL
+  `pg_read_file`/`COPY`, and paged full-table CSV export (`db` → `csv`/`rf`/`wf`).
+  (DBFS)
+- **Output modes** `--output {console,quiet,json}` via a `Renderer` seam. (RENDER)
+- **Layered config**: `~/.config/webshell-sniper/config.toml` < `WEBSHELL_SNIPER_*`
+  env < CLI flags (`--config`). (CFG)
+- **Sessions**: `save`/`hist` commands and `--session FILE` save/restore of
+  shells, cwd and history. (SESSION)
+- **PTY upgrade** helper (`pty`); post-inject reachability verification;
+  per-attempt reverse-shell timeout. (PTY, MISC)
+
+### Changed
+- Filesystem operations run through language-agnostic `Executor` primitives, so
+  file commands also work over command-only shells. (LANG-FS)
+- Encoders split into language-neutral byte transforms + per-backend decode
+  wrappers; `Transport` formalized behind a `Channel` protocol. (ENC2, CHANNEL)
+- Query features (`recon`/`enum`/`portscan`/DB metadata) are pure (return data;
+  the REPL renders). (PURE)
+- REPL/CLI test coverage raised (gate 60 → 70). (COV)
+
 ## [2.0.0] — unreleased
 
 A full modernization. The tool now targets **Python 3.10+** (v1 was Python 2,
