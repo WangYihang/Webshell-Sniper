@@ -22,8 +22,8 @@ Effort **S/M/L**, value **🔴 high / 🟡 medium / 🟢 low**.
 - [x] **PROBE** 🔴 S — probe the chosen command-exec function with a token and
       fall back when it's listed-enabled but silently broken
       (suhosin/open_basedir). → `core/executor.py`
-- [ ] **CHUNK** 🔴 M — ranged/chunked large-file download (loop offset+length)
-      to avoid PHP `memory_limit`/POST limits; drive the progress bar by size.
+- [x] **CHUNK** 🔴 M — ranged large-file download (filesize + looped
+      fseek/fread) to avoid PHP `memory_limit`/POST limits; per-chunk progress.
       → `features/files.py`
 - [ ] **ENUM** 🔴 M — aggregate privesc enumeration + credential sweep
       (`sudo -l`, cron, capabilities, world-writable, kernel; read `/etc/passwd`,

