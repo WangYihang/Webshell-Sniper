@@ -37,6 +37,10 @@ EOL since 2020) and ships as an installable package.
   on-wire encoding to frustrate static signatures — `xor` randomizes its key
   and decoder variable names every request. Closes v1's unfinished
   "multiple encoders" TODO.
+- `--debug` payload/response tracing; command-exec **runtime probe** with
+  fallback (handles listed-enabled-but-broken functions); **ranged** large-file
+  download; `enum`/`creds` post-exploitation aggregation; a **file manager**
+  (`ls`/`mv`/`cp`/`mkdir`/`chmod`/`edit`/`timestomp`).
 - Client-tracked remote working directory: `cd`/`pwd` and an interactive
   cwd-aware `shell`.
 - File **upload** (`ul`), and rich tables / a download progress bar.

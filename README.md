@@ -96,6 +96,12 @@ supplies the command (for `exec`) or remote path (for `download`). Add
 | `ps` | Port-scan a CIDR range *from the target* (optional banner grab) |
 | `dl`, `dla` | Download a file/tree (`dla` = custom `find` args) |
 | `ul` | Upload a local file to the target |
+| `ls` | List a remote directory (mode/size/mtime) |
+| `mv`, `cp`, `mkdir`, `chmod` | File-manager operations |
+| `edit` | Download → open in `$EDITOR` → upload back |
+| `timestomp` | Copy a reference file's timestamps onto a file |
+| `enum` | Aggregate privesc enumeration (sudo/cron/caps/...) |
+| `creds` | Harvest credential files + DB creds from configs |
 | `rsh` | Reverse shell (socat/nc/bash/python/perl/php; optional local listener) |
 | `db` | Database manager (MySQL / PostgreSQL): browse, dump, run SQL |
 | `aiw`, `aimw` | Inject a webshell / memory-resident webshell (random per-directory password) |

@@ -29,8 +29,8 @@ Effort **S/M/L**, value **🔴 high / 🟡 medium / 🟢 low**.
       (`creds`): sudo/cron/caps/world-writable/kernel/listening; reads
       passwd/shadow/ssh/histories + greps DB creds from configs.
       → `features/enum.py`, REPL `enum`/`creds`
-- [ ] **FILEMGR** 🔴 M — file-manager commands: `ls` (table: perms/size/mtime),
-      `mv`/`cp`/`mkdir`/`chmod`, in-place `edit`, `timestomp` (`touch -r`).
+- [x] **FILEMGR** 🔴 M — file-manager commands: `ls` (table), `mv`/`cp`/`mkdir`/
+      `chmod`, in-place `edit` ($EDITOR), `timestomp` (`touch -r`).
       → `features/files.py`, REPL
 
 ## P2 — capability + DX

