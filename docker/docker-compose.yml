@@ -3,7 +3,8 @@
 #
 #   docker compose -f docker/docker-compose.yml up -d --build
 #   webshell-sniper http://127.0.0.1:8080/index.php POST c
-#     # then in the REPL: `db`  ->  host=db  user=root  password=root
+#     # `db` -> engine=mysql host=db  user=root     password=root
+#     # `db` -> engine=pgsql host=pg  user=postgres password=postgres db=benchmark
 #   docker compose -f docker/docker-compose.yml down -v
 #
 # Behind Docker Hub's pull limit? Copy .env.example to .env (see that file).
@@ -19,6 +20,8 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      pg:
+        condition: service_healthy
 
   db:
     image: ${MYSQL_IMAGE:-mysql:8.4}
@@ -30,6 +33,20 @@ services:
       - ./mysql-init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
+
+  pg:
+    image: ${POSTGRES_IMAGE:-postgres:16}
+    container_name: webshell-sniper-pg
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: benchmark
+    volumes:
+      - ./pg-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 3s
       timeout: 5s
       retries: 20

