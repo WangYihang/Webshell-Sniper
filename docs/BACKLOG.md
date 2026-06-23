@@ -33,6 +33,21 @@ Effort **S/M/L**, value **🔴 high / 🟡 medium / 🟢 low**.
       `chmod`, in-place `edit` ($EDITOR), `timestomp` (`touch -r`).
       → `features/files.py`, REPL
 
+## P1.5 — Abstraction (see `ARCHITECTURE.md`)
+- [ ] **LANG** 🔴 M — extract a `Backend` ABC + `PHPBackend` holding every
+      PHP-specific fragment; route `Executor` / `core/php.py` / `core/webshell`
+      through it (behaviour-preserving). → `core/backends/`
+- [ ] **LANG-FS** 🔴 M — express files/recon via backend primitives
+      (`read_file`/`write_file`/`list_dir`/…) so they become language-agnostic.
+- [ ] **ENC2** 🟡 M — split encoders into a byte transform + a per-backend
+      decode expression (evasion works on every backend). → `encoders.py`, `Backend`
+- [ ] **LANG-2** 🟡 L — add a second backend (generic command-only shell, then
+      JSP) + `--lang`; folds in **CMDSHELL** (shell-type as backend variant).
+- [ ] **CHANNEL** 🟡 S — formalize `Transport` as a `Channel` protocol. → `core/transport.py`
+- [ ] **RENDER** 🟡 M — `Renderer` (rich/json/quiet); features return structured
+      data (subsumes **PURE**). → `log.py`, `features/*`, `repl.py`, `batch.py`
+- [ ] **SESSION** 🟢 S — a `Session` object for cwd / shells / history.
+
 ## P2 — capability + DX
 - [ ] **CFG** 🟡 S — config file (`~/.config/webshell-sniper/config.toml`) +
       `WEBSHELL_SNIPER_*` env vars layered under CLI flags. → `config.py`, `cli.py`
