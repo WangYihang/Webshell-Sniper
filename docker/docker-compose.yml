@@ -1,0 +1,14 @@
+# A disposable, *intentionally vulnerable* PHP target for exercising
+# Webshell-Sniper locally.  NEVER expose this on a routable network.
+#
+#   docker compose -f docker/docker-compose.yml up -d
+#   webshell-sniper http://127.0.0.1:8080/index.php POST c
+#   docker compose -f docker/docker-compose.yml down
+services:
+  target:
+    image: php:8.3-apache
+    container_name: webshell-sniper-target
+    ports:
+      - "127.0.0.1:8080:80"
+    volumes:
+      - ./webroot:/var/www/html
