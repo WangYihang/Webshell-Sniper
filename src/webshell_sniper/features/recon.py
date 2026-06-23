@@ -1,10 +1,14 @@
-"""Reconnaissance: enumerate the target's filesystem and PHP configuration."""
+"""Reconnaissance: enumerate the target's filesystem and PHP configuration.
+
+These are *pure* query functions — they return structured data and never print,
+so the REPL/CLI/batch (or a plugin/library caller) decide how to render or store
+the results. See the ``PURE`` design note in ``docs/BACKLOG.md``.
+"""
 
 from __future__ import annotations
 
 import shlex
 
-from .. import log
 from ..core.webshell import WebShell
 
 # Directories worth searching for SUID binaries.
@@ -14,61 +18,44 @@ _SUID_PATHS = [
 ]
 
 
+def _filter_find(output: str) -> list[str]:
+    """Drop blank lines and ``find:`` permission-denied noise."""
+    return [line for line in output.splitlines() if line and not line.startswith("find:")]
+
+
 def get_disabled_functions(ws: WebShell) -> set[str]:
-    disabled = ws.executor.disabled_functions
-    if disabled:
-        log.success("Disabled functions:\n" + "\n".join(f"\t[{f}]" for f in sorted(disabled)))
-    else:
-        log.warning("No PHP functions are disabled.")
-    return disabled
+    """Return the PHP ``disable_functions`` set (empty if none)."""
+    return ws.executor.disabled_functions
 
 
 def find_writable_dirs(ws: WebShell) -> list[str]:
     """Return writable directories under the webroot."""
-    output = ws.run_command(f"find {shlex.quote(ws.webroot)} -type d -writable")
-    dirs = [line for line in output.splitlines() if line and not line.startswith("find:")]
-    if dirs:
-        log.success("Writable directories:\n" + "\n".join(f"\t[{d}]" for d in dirs))
-    else:
-        log.warning("No writable directories found.")
-    return dirs
+    return _filter_find(ws.run_command(f"find {shlex.quote(ws.webroot)} -type d -writable"))
 
 
 def find_writable_php(ws: WebShell) -> list[str]:
-    output = ws.run_command(f"find {shlex.quote(ws.webroot)} -name '*.php' -writable")
-    files = [line for line in output.splitlines() if line and not line.startswith("find:")]
-    if files:
-        log.success("Writable PHP files:\n" + "\n".join(f"\t[{f}]" for f in files))
-    else:
-        log.warning("No writable PHP files found.")
-    return files
+    """Return writable ``.php`` files under the webroot."""
+    return _filter_find(ws.run_command(f"find {shlex.quote(ws.webroot)} -name '*.php' -writable"))
 
 
 def find_config_files(ws: WebShell, keywords: list[str] | None = None) -> list[str]:
+    """Return files under the webroot whose names match any of ``keywords``."""
     keywords = keywords or ["config", "db", "database"]
     found: list[str] = []
     for keyword in keywords:
-        log.info(f"Searching for files matching *{keyword}* ...")
-        output = ws.run_command(f"find {shlex.quote(ws.webroot)} -name '*{keyword}*'")
-        hits = [line for line in output.splitlines() if line and not line.startswith("find:")]
-        found.extend(hits)
-        if hits:
-            log.success("\n".join(f"\t[{h}]" for h in hits))
-        else:
-            log.warning("Nothing found.")
+        found.extend(_filter_find(ws.run_command(f"find {shlex.quote(ws.webroot)} -name '*{keyword}*'")))
     return found
 
 
 def find_suid_binaries(ws: WebShell) -> list[str]:
+    """Return SUID-root binaries found across the common bin paths."""
     found: list[str] = []
     for path in _SUID_PATHS:
-        output = ws.run_command(
-            f"find {shlex.quote(path)} -user root -perm -4000 -exec ls -ldb {{}} \\;"
+        found.extend(
+            _filter_find(
+                ws.run_command(
+                    f"find {shlex.quote(path)} -user root -perm -4000 -exec ls -ldb {{}} \\;"
+                )
+            )
         )
-        hits = [line for line in output.splitlines() if line and not line.startswith("find:")]
-        if hits:
-            found.extend(hits)
-            log.success(f"{path}:\n" + "\n".join(f"\t{h}" for h in hits))
-    if not found:
-        log.warning("No SUID binaries found.")
     return found

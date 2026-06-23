@@ -77,9 +77,12 @@ Effort **S/M/L**, value **🔴 high / 🟡 medium / 🟢 low**.
       literal), and `--split N` spreads each payload across N request params with
       a tiny re-assembling loader. Both verified live. → `encoders.py`,
       `core/backends/php.py`, `core/transport.py`
-- [ ] **PURE** 🟡 M — separate compute from presentation in `features/*`
-      (return structured data; REPL/CLI render). Improves batch/plugin/testing.
-      → `features/*`, `repl.py`, `batch.py`
+- [x] **PURE** 🟡 M — query features (`recon`, `enum`, `portscan`, `database`
+      metadata, `files.read_file`) are now pure: they return structured data and
+      never print; the REPL renders. Action/transfer features (`inject`,
+      `revshell`, downloads) keep operational/progress output by design, which
+      still flows through the `RENDER` renderer (so json/quiet capture it).
+      → `features/*`, `repl.py`
 
 ## P3 — bigger / nice-to-have
 - [ ] **TUNNEL** 🔴 L — SOCKS5 / port-forward through the shell (reGeorg-style):

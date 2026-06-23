@@ -15,7 +15,6 @@ import csv
 from abc import ABC, abstractmethod
 from pathlib import Path
 
-from .. import log
 from ..core.php import php_string
 from ..core.webshell import WebShell
 from ..exceptions import WebshellError
@@ -64,11 +63,11 @@ class SqlClient(ABC):
     def current_user(self) -> str: ...
 
     def check_connection(self) -> bool:
+        """True if a trivial query succeeds (the caller renders any failure)."""
         try:
             self.query("SELECT 1")
             return True
-        except WebshellError as exc:
-            log.error(f"connection failed: {exc}")
+        except WebshellError:
             return False
 
     def _scalar(self, sql: str) -> str:

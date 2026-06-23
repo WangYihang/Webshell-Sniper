@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from .. import log
 from ..core.php import php_string
 from ..core.webshell import WebShell
 
@@ -39,13 +38,7 @@ def port_scan(ws: WebShell, hosts: str, ports: str, banner: bool = False) -> str
     """
     if "/" not in hosts:
         raise ValueError("hosts must be CIDR, e.g. 192.168.1.0/24 (use /32 for one host)")
-    log.info(f"Scanning {hosts} for ports [{ports}]{' with banners' if banner else ''} ...")
     code = _SCAN_PHP.format(
         grab="1" if banner else "0", ports=php_string(ports), hosts=php_string(hosts)
     )
-    output = ws.run_php(code)
-    if output.strip():
-        log.success("Open ports:\n" + output.strip())
-    else:
-        log.warning("No open ports found.")
-    return output
+    return ws.run_php(code)

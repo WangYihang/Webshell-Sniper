@@ -114,6 +114,16 @@ class Repl(cmd2.Cmd):
     def _ask(prompt: str, default: str) -> str:
         return input(f"{prompt} ({default}): ").strip() or default
 
+    def _render_list(self, fn, label: str, header: str) -> None:
+        """Run a pure list-returning recon function per shell and render it."""
+        def run(ws: WebShell) -> None:
+            items = fn(ws)
+            if items:
+                log.success(f"{header}:\n" + "\n".join(f"\t[{i}]" for i in items))
+            else:
+                log.warning(f"No {header.lower()} found.")
+        self._each(run, label)
+
     # -- recon / info ----------------------------------------------------------
     def do_p(self, _: cmd2.Statement) -> None:
         """Print target info (URL, webroot, PHP & kernel version)."""
@@ -135,23 +145,29 @@ class Repl(cmd2.Cmd):
 
     def do_c(self, _: cmd2.Statement) -> None:
         """Search the webroot for config/database files."""
-        self._each(recon.find_config_files, "config")
+        self._render_list(recon.find_config_files, "config", "Config/DB files")
 
     def do_fwd(self, _: cmd2.Statement) -> None:
         """Find writable directories under the webroot."""
-        self._each(recon.find_writable_dirs, "writable-dirs")
+        self._render_list(recon.find_writable_dirs, "writable-dirs", "Writable directories")
 
     def do_fwpf(self, _: cmd2.Statement) -> None:
         """Find writable .php files under the webroot."""
-        self._each(recon.find_writable_php, "writable-php")
+        self._render_list(recon.find_writable_php, "writable-php", "Writable PHP files")
 
     def do_gdf(self, _: cmd2.Statement) -> None:
         """List PHP disabled_functions on the target."""
-        self._each(recon.get_disabled_functions, "disabled-funcs")
+        def run(ws: WebShell) -> None:
+            disabled = recon.get_disabled_functions(ws)
+            if disabled:
+                log.success("Disabled functions:\n" + "\n".join(f"\t[{f}]" for f in sorted(disabled)))
+            else:
+                log.warning("No PHP functions are disabled.")
+        self._each(run, "disabled-funcs")
 
     def do_fsb(self, _: cmd2.Statement) -> None:
         """Find SUID-root binaries."""
-        self._each(recon.find_suid_binaries, "suid")
+        self._render_list(recon.find_suid_binaries, "suid", "SUID binaries")
 
     def do_enum(self, _: cmd2.Statement) -> None:
         """Aggregate privesc enumeration (id/sudo/cron/caps/world-writable/...)."""
@@ -177,7 +193,7 @@ class Repl(cmd2.Cmd):
     def do_r(self, line: cmd2.Statement) -> None:
         """read <path> — read a remote file (default /etc/passwd)."""
         path = str(line).strip() or self._ask("File path", "/etc/passwd")
-        self._each(lambda ws: files.read_file(ws, path), "read")
+        self._each(lambda ws: log.raw(files.read_file(ws, path)), "read")
 
     def do_ls(self, line: cmd2.Statement) -> None:
         """ls [path] — list a remote directory (mode/size/mtime/name)."""
@@ -319,7 +335,14 @@ class Repl(cmd2.Cmd):
         hosts = self._ask("Hosts (CIDR)", "192.168.1.0/24")
         ports = self._ask("Ports", "21,22,80,443,445,3306,3389")
         banner = input("Grab banners? [y/N]: ").strip().lower() == "y"
-        self._each(lambda ws: portscan.port_scan(ws, hosts, ports, banner), "portscan")
+        def run(ws: WebShell) -> None:
+            log.info(f"Scanning {hosts} for [{ports}]{' with banners' if banner else ''} ...")
+            output = portscan.port_scan(ws, hosts, ports, banner).strip()
+            if output:
+                log.success("Open ports:\n" + output)
+            else:
+                log.warning("No open ports found.")
+        self._each(run, "portscan")
 
     def do_rsh(self, _: cmd2.Statement) -> None:
         """Spawn a reverse shell back to you (auto/socat/nc/bash/python/perl/php)."""
@@ -355,6 +378,8 @@ class Repl(cmd2.Cmd):
             if client.check_connection():
                 log.success("Connected.")
                 self._database_repl(client)
+            else:
+                log.error("Database connection failed.")
 
     def _database_repl(self, client: database.SqlClient) -> None:
         help_text = (

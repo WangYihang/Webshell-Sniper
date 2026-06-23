@@ -14,10 +14,8 @@ from ..utils.http import get_domain
 
 
 def read_file(ws: WebShell, path: str) -> str:
-    log.info(f"Reading file: {path}")
-    content = ws.executor.fs_read_text(path)
-    log.raw(content)
-    return content
+    """Return a remote file's text content (pure; the caller renders it)."""
+    return ws.executor.fs_read_text(path)
 
 
 def file_exists(ws: WebShell, path: str) -> bool:
