@@ -73,6 +73,9 @@ ignore_errors = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# Benchmark tests need the docker-compose stack; opt in with `-m benchmark`.
+addopts = "-m 'not benchmark'"
 markers = [
     "integration: tests that require a live PHP target (spawned via `php -S`)",
+    "benchmark: tests that require the docker-compose stack (see docker/)",
 ]

@@ -1,14 +1,35 @@
-# A disposable, *intentionally vulnerable* PHP target for exercising
-# Webshell-Sniper locally.  NEVER expose this on a routable network.
+# Disposable, INTENTIONALLY VULNERABLE benchmark environment for Webshell-Sniper.
+# NEVER expose this on a routable network — it ships a live webshell on purpose.
 #
-#   docker compose -f docker/docker-compose.yml up -d
+#   docker compose -f docker/docker-compose.yml up -d --build
 #   webshell-sniper http://127.0.0.1:8080/index.php POST c
-#   docker compose -f docker/docker-compose.yml down
+#     # then in the REPL: `db`  ->  host=db  user=root  password=root
+#   docker compose -f docker/docker-compose.yml down -v
+#
+# Behind Docker Hub's pull limit? Copy .env.example to .env (see that file).
 services:
   target:
-    image: php:8.3-apache
+    build:
+      context: .
+      args:
+        PHP_IMAGE: ${PHP_IMAGE:-php:8.3-apache}
     container_name: webshell-sniper-target
     ports:
       - "127.0.0.1:8080:80"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: ${MYSQL_IMAGE:-mysql:8.4}
+    container_name: webshell-sniper-db
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: benchmark
     volumes:
-      - ./webroot:/var/www/html
+      - ./mysql-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-proot"]
+      interval: 3s
+      timeout: 5s
+      retries: 20
