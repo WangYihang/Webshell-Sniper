@@ -23,6 +23,11 @@ EOL since 2020) and ships as an installable package.
 - File **upload** (`ul` command / `files.upload`) — v1 shipped only an empty
   `upload_file.py` stub.
 - `rm` command / self-removal (`unlink(__FILE__)`) for engagement cleanup.
+- **Plugin system**: third-party REPL command sets discovered via the
+  `webshell_sniper.commands` entry-point group (see `docs/plugins.md`).
+- **Concurrent** multi-shell operations via `--workers` (batch and the REPL).
+- Transport **retry/backoff** on connection errors (read timeouts are not
+  retried, to avoid duplicating side effects).
 - **PostgreSQL** database backend (PDO) alongside MySQL behind a shared client,
   plus a paginated table `dump`.
 - Reverse-shell **methods** (python/perl/php in addition to socat/nc/bash) and

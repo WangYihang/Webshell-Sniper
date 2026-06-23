@@ -7,6 +7,8 @@ in PHP source strings.
 
 from __future__ import annotations
 
+import time
+
 import requests
 
 from ..config import Config
@@ -41,36 +43,38 @@ class Transport:
         self._ua_index += 1
         return {"User-Agent": ua}
 
-    def send(self, php_code: str) -> str:
-        """POST/GET ``php_code`` to the password parameter and return the body.
+    def _request(self, method: str, **kwargs: object) -> requests.Response:
+        """Issue a request with retry/backoff on *connection* failures.
 
-        Raises :class:`ConnectionFailed` on any network-level error instead of
-        swallowing it the way v1 did.
+        Read timeouts are **not** retried: the request already reached the
+        server, so re-sending could duplicate side effects (e.g. spawn a second
+        reverse shell).
         """
-        try:
-            if self.method == "POST":
-                response = self._session.post(
-                    self.url,
-                    data={self.password: php_code},
-                    headers=self._headers(),
-                    timeout=self.config.timeout,
-                    proxies=self.config.proxies,
-                    verify=self.config.verify_ssl,
-                )
-            elif self.method in ("GET", "REQUEST"):
-                response = self._session.get(
-                    self.url,
-                    params={self.password: php_code},
-                    headers=self._headers(),
-                    timeout=self.config.timeout,
-                    proxies=self.config.proxies,
-                    verify=self.config.verify_ssl,
-                )
-            else:
-                raise ConnectionFailed(f"Unsupported method: {self.method}")
-        except requests.RequestException as exc:
-            raise ConnectionFailed(str(exc)) from exc
-        return response.text
+        kwargs.setdefault("headers", self._headers())
+        kwargs.setdefault("timeout", self.config.timeout)
+        kwargs.setdefault("proxies", self.config.proxies)
+        kwargs.setdefault("verify", self.config.verify_ssl)
+        for attempt in range(self.config.retries + 1):
+            try:
+                return self._session.request(method, self.url, **kwargs)  # type: ignore[arg-type]
+            except requests.ReadTimeout as exc:
+                raise ConnectionFailed(str(exc)) from exc
+            except requests.ConnectionError as exc:
+                if attempt < self.config.retries:
+                    time.sleep(self.config.retry_backoff * (2**attempt))
+                    continue
+                raise ConnectionFailed(str(exc)) from exc
+            except requests.RequestException as exc:
+                raise ConnectionFailed(str(exc)) from exc
+        raise ConnectionFailed("exhausted retries")  # pragma: no cover
+
+    def send(self, php_code: str) -> str:
+        """POST/GET ``php_code`` to the password parameter and return the body."""
+        if self.method == "POST":
+            return self._request("POST", data={self.password: php_code}).text
+        if self.method in ("GET", "REQUEST"):
+            return self._request("GET", params={self.password: php_code}).text
+        raise ConnectionFailed(f"Unsupported method: {self.method}")
 
     def fetch(self, url: str, timeout: float) -> requests.Response:
         """GET an arbitrary URL through the same session/proxy/TLS settings.

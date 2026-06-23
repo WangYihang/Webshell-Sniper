@@ -66,7 +66,8 @@ webshell-sniper -f webshells.json --batch inject
 `--batch {info,exec,inject,download}` loops a single action over every live
 shell, writes a `batch_<action>_<ts>.json` report to the output dir, and exits
 without entering the REPL — handy for scripting against many targets. `--arg`
-supplies the command (for `exec`) or remote path (for `download`).
+supplies the command (for `exec`) or remote path (for `download`). Add
+`--workers N` to process shells concurrently.
 
 `webshells.json` is a list of endpoints:
 
@@ -137,6 +138,9 @@ uv run pytest                   # unit + integration (integration needs `php`)
 
 Integration tests spin up their own `php -S` target and are skipped when `php`
 is not installed. A pre-commit config is provided (`pre-commit install`).
+
+Extend the REPL with your own commands via plugins — see
+[docs/plugins.md](docs/plugins.md).
 
 ## Contributors
 

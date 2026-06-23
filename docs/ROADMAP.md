@@ -25,11 +25,11 @@ releasable. Legend: effort **S/M/L**, risk **L/M/H**.
       `features/revshell.py` (bash method live-tested end to end)
 - [x] Port-scan banner grabbing — `features/portscan.py` (live-tested)
 
-## v2.4 — Architecture & scale
-- [ ] Plugin system via entry points + authoring doc — `pyproject.toml`,
-      `repl.py`, `docs/plugins.md` — M/M
-- [ ] Concurrent multi-shell ops (thread pool) — `repl.py`, `batch.py` — M/M
-- [ ] Transport retry/backoff — `core/transport.py` — S/L
+## v2.4 — Architecture & scale ✅
+- [x] Plugin system via entry points + authoring doc — `repl.py`,
+      `docs/plugins.md`
+- [x] Concurrent multi-shell ops (thread pool, `--workers`) — `repl.py`, `batch.py`
+- [x] Transport retry/backoff (connection errors only) — `core/transport.py`
 
 ## v2.5 — Distribution & assurance
 - [ ] PyPI publish workflow + pipx docs — `.github/workflows/`, `README.md` — S/L

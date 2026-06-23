@@ -9,9 +9,11 @@ carries over.
 from __future__ import annotations
 
 import contextlib
+import importlib.metadata
 import shlex
 import subprocess
 import time
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import cmd2
@@ -54,16 +56,37 @@ class Repl(cmd2.Cmd):
         self.aliases.update(
             {"print": "p", "read": "r", "quit": "q", "exit": "q", "h": "help"}
         )
+        self._load_plugins()
+
+    def _load_plugins(self) -> None:
+        """Register third-party command sets from the ``webshell_sniper.commands``
+        entry-point group (see docs/plugins.md). Failures are non-fatal."""
+        for entry in importlib.metadata.entry_points(group="webshell_sniper.commands"):
+            try:
+                self.register_command_set(entry.load()())
+                log.info(f"Loaded plugin: {entry.name}")
+            except Exception as exc:  # noqa: BLE001 - a bad plugin must not crash startup
+                log.warning(f"Plugin {entry.name!r} failed to load: {exc}")
 
     # -- helpers ---------------------------------------------------------------
     def _each(self, action, label: str) -> None:
-        """Run ``action(ws)`` against every live webshell, isolating failures."""
-        for ws in self.webshells:
+        """Run ``action(ws)`` against every live webshell, isolating failures.
+
+        Runs concurrently when ``--workers`` > 1 and there's more than one shell.
+        """
+        def run(ws: WebShell) -> None:
             log.info(f"[{label}] {ws}")
             try:
                 action(ws)
             except WebshellError as exc:
                 log.error(f"{label} failed: {exc}")
+
+        if self.config.workers > 1 and len(self.webshells) > 1:
+            with ThreadPoolExecutor(max_workers=self.config.workers) as pool:
+                list(pool.map(run, self.webshells))
+        else:
+            for ws in self.webshells:
+                run(ws)
 
     @staticmethod
     def _ask(prompt: str, default: str) -> str:

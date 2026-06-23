@@ -19,6 +19,9 @@ class Config:
     verify_ssl: bool = True
     user_agent: str | None = None
     encoder: str = "base64"
+    retries: int = 2
+    retry_backoff: float = 0.5
+    workers: int = 1
     output_dir: Path = field(default_factory=lambda: Path.cwd())
 
     @property

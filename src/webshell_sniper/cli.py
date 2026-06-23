@@ -49,6 +49,10 @@ def _build_parser() -> argparse.ArgumentParser:
         "--arg", help="argument for --batch (the command for exec, the path for download)"
     )
     parser.add_argument(
+        "--workers", type=int, default=1,
+        help="process multiple shells concurrently (default 1 = sequential)",
+    )
+    parser.add_argument(
         "-o", "--output-dir", type=Path, default=Path.cwd(),
         help="where downloads and logs are written (default: cwd)",
     )
@@ -85,6 +89,7 @@ def main(argv: list[str] | None = None) -> int:
         verify_ssl=not args.insecure,
         user_agent=args.user_agent,
         encoder=args.encoder,
+        workers=args.workers,
         output_dir=args.output_dir,
     )
     config.output_dir.mkdir(parents=True, exist_ok=True)
