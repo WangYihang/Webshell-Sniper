@@ -57,6 +57,10 @@ def _build_parser() -> argparse.ArgumentParser:
         help="process multiple shells concurrently (default 1 = sequential)",
     )
     parser.add_argument(
+        "--output", choices=("console", "quiet", "json"), default="console",
+        help="output mode: console (rich), quiet (results+errors only), json",
+    )
+    parser.add_argument(
         "--debug", action="store_true", help="trace the PHP sent and raw responses"
     )
     parser.add_argument(
@@ -84,8 +88,15 @@ def _load_configs(args: argparse.Namespace) -> list[dict[str, str]]:
 def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
+    log.set_renderer(args.output)
     log.set_debug(args.debug)
+    try:
+        return _run(args, parser)
+    finally:
+        log.flush()
 
+
+def _run(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
     configs = _load_configs(args)
     if not configs:
         parser.print_help()

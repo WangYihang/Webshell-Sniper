@@ -54,8 +54,11 @@ Effort **S/M/L**, value **🔴 high / 🟡 medium / 🟢 low**.
 - [x] **CHANNEL** 🟡 S — `Channel` protocol (`send(payload)->str`) the executor
       depends on; `Transport` is the HTTP implementation. Non-HTTP channels now
       plug in without touching the executor. → `core/channel.py`, `core/executor.py`
-- [ ] **RENDER** 🟡 M — `Renderer` (rich/json/quiet); features return structured
-      data (subsumes **PURE**). → `log.py`, `features/*`, `repl.py`, `batch.py`
+- [x] **RENDER** 🟡 M — `Renderer` (console/quiet/json) behind the `log` facade,
+      selected with `--output`; json buffers events and flushes one array.
+      Features already return structured data, so this decouples presentation
+      without touching call sites. Full per-feature compute/presentation split
+      (**PURE**) remains its own item. → `render.py`, `log.py`, `cli.py`
 - [ ] **SESSION** 🟢 S — a `Session` object for cwd / shells / history.
 
 ## P2 — capability + DX
