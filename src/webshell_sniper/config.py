@@ -18,6 +18,7 @@ class Config:
     proxy: str | None = None
     verify_ssl: bool = True
     user_agent: str | None = None
+    encoder: str = "base64"
     output_dir: Path = field(default_factory=lambda: Path.cwd())
 
     @property

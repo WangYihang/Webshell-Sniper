@@ -13,6 +13,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from ..config import Config
+from ..encoders import get_encoder
 from ..exceptions import ConnectionFailed, ExecutionFailed, WebshellError
 from .executor import Executor
 from .transport import Transport
@@ -30,9 +31,10 @@ class WebShellInfo:
 
 class WebShell:
     def __init__(self, url: str, method: str, password: str, config: Config | None = None):
+        config = config or Config()
         self.info = WebShellInfo(url, method, password.strip())
         self.transport = Transport(url, method, self.info.password, config)
-        self.executor = Executor(self.transport)
+        self.executor = Executor(self.transport, get_encoder(config.encoder))
         self.working = False
         self.reason: str | None = None
         self._webroot: str | None = None

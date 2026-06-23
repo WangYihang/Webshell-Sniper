@@ -23,6 +23,13 @@ EOL since 2020) and ships as an installable package.
 - File **upload** (`ul` command / `files.upload`) — v1 shipped only an empty
   `upload_file.py` stub.
 - `rm` command / self-removal (`unlink(__FILE__)`) for engagement cleanup.
+- Pluggable payload **encoders** (`--encoder {base64,gzip,xor}`) that vary the
+  on-wire encoding to frustrate static signatures — `xor` randomizes its key
+  and decoder variable names every request. Closes v1's unfinished
+  "multiple encoders" TODO.
+- Client-tracked remote working directory: `cd`/`pwd` and an interactive
+  cwd-aware `shell`.
+- File **upload** (`ul`), and rich tables / a download progress bar.
 - Non-interactive `--batch {info,exec,inject,download}` mode that runs one
   action across all loaded shells and writes a JSON report — generalises the
   `dev` branch's mass-operation pattern without its scoreboard coupling.

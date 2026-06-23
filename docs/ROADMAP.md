@@ -10,11 +10,12 @@ releasable. Legend: effort **S/M/L**, risk **L/M/H**.
 - [x] Download progress bar — `log.py` (rich.progress), `features/files.py`
 - [x] cmd2 command categories + local path completion for `ul` — `repl.py`
 
-## v2.2 — Evasion & payload encoders
-- [ ] Pluggable encoder layer (base64 / gzip+b64 / xor+b64 / random var names /
-      chunked), `--encoder` flag — `core/encoders.py`, `core/executor.py`,
-      `core/transport.py`, `config.py`, `cli.py` — M/M
-- [ ] Request randomization (param/header/UA) — `core/transport.py` — S/L
+## v2.2 — Evasion & payload encoders ✅
+- [x] Pluggable encoder layer (base64 / gzip / xor with randomized key + var
+      names), `--encoder` flag — `encoders.py`, `core/executor.py`,
+      `core/webshell.py`, `config.py`, `cli.py`
+- [x] Per-request randomization — UA rotation (transport) + per-request xor key
+      and decoder variable names
 
 ## v2.3 — Capability
 - [ ] DB row dump with pagination + tables — `features/database.py` — S/L

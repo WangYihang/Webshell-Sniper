@@ -108,9 +108,11 @@ by default, or on the target after `setr`. cmd2 gives you history (↑/↓),
 
 ## Command execution & evasion notes
 
-- Payloads are base64-encoded and run via `eval(base64_decode(...))`, so quotes,
-  newlines and binary data survive transport intact (no fragile string
-  interpolation).
+- Payloads are encoded and `eval`'d server-side, so quotes, newlines and binary
+  data survive transport intact (no fragile string interpolation).
+- Choose the wire encoding with `--encoder {base64,gzip,xor}`: `gzip`
+  (`gzinflate`) shrinks and reshapes the body; `xor` randomizes the key and
+  decoder variable names every request to defeat static signatures.
 - Command execution automatically picks the first **non-disabled** function from
   `system → passthru → shell_exec → exec → popen → proc_open`, so a target that
   disables `system()` still works.

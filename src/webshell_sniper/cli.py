@@ -7,7 +7,7 @@ import json
 import sys
 from pathlib import Path
 
-from . import __version__, batch, log
+from . import __version__, batch, encoders, log
 from .config import Config
 from .core.webshell import WebShell
 from .repl import Repl
@@ -37,6 +37,10 @@ def _build_parser() -> argparse.ArgumentParser:
         "--insecure", action="store_true", help="do not verify TLS certificates"
     )
     parser.add_argument("--user-agent", help="fixed User-Agent (default: rotate a small pool)")
+    parser.add_argument(
+        "--encoder", choices=sorted(encoders.ENCODERS), default="base64",
+        help="payload encoding on the wire (default: base64)",
+    )
     parser.add_argument(
         "--batch", choices=batch.ACTIONS,
         help="run an action across all shells non-interactively, write a JSON report, then exit",
@@ -80,6 +84,7 @@ def main(argv: list[str] | None = None) -> int:
         proxy=args.proxy,
         verify_ssl=not args.insecure,
         user_agent=args.user_agent,
+        encoder=args.encoder,
         output_dir=args.output_dir,
     )
     config.output_dir.mkdir(parents=True, exist_ok=True)

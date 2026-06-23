@@ -61,6 +61,16 @@ def test_find_writable_dirs(live_shell: WebShell):
     assert any(d.endswith("webroot0") for d in dirs)
 
 
+@pytest.mark.parametrize("encoder", ["base64", "gzip", "xor"])
+def test_every_encoder_executes(php_target: dict[str, object], tmp_path: Path, encoder: str):
+    """Each wire encoding must actually run against a real PHP interpreter."""
+    config = Config(output_dir=tmp_path, encoder=encoder)
+    ws = WebShell(f"{php_target['base']}/index.php", "POST", "c", config)
+    assert ws.connect(), f"{encoder} failed to connect"
+    assert ws.run_command("echo enc-ok").strip() == "enc-ok"
+    assert ws.run_php(r"""echo "q'q" """) == "q'q"
+
+
 def test_connect_reason_wrong_password(php_target: dict[str, object], tmp_path: Path):
     ws = WebShell(
         f"{php_target['base']}/index.php", "POST", "wrongparam", Config(output_dir=tmp_path)
