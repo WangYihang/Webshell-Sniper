@@ -25,10 +25,10 @@ Effort **S/M/L**, value **🔴 high / 🟡 medium / 🟢 low**.
 - [x] **CHUNK** 🔴 M — ranged large-file download (filesize + looped
       fseek/fread) to avoid PHP `memory_limit`/POST limits; per-chunk progress.
       → `features/files.py`
-- [ ] **ENUM** 🔴 M — aggregate privesc enumeration + credential sweep
-      (`sudo -l`, cron, capabilities, world-writable, kernel; read `/etc/passwd`,
-      `~/.ssh/`, histories, and auto-extract DB creds from found configs).
-      → `features/enum.py`, REPL `enum`
+- [x] **ENUM** 🔴 M — aggregate privesc enumeration (`enum`) + credential sweep
+      (`creds`): sudo/cron/caps/world-writable/kernel/listening; reads
+      passwd/shadow/ssh/histories + greps DB creds from configs.
+      → `features/enum.py`, REPL `enum`/`creds`
 - [ ] **FILEMGR** 🔴 M — file-manager commands: `ls` (table: perms/size/mtime),
       `mv`/`cp`/`mkdir`/`chmod`, in-place `edit`, `timestomp` (`touch -r`).
       → `features/files.py`, REPL
