@@ -22,6 +22,7 @@ class Config:
     retries: int = 2
     retry_backoff: float = 0.5
     workers: int = 1
+    debug: bool = False
     output_dir: Path = field(default_factory=lambda: Path.cwd())
 
     @property

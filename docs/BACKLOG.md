@@ -16,9 +16,9 @@ Effort **S/M/L**, value **🔴 high / 🟡 medium / 🟢 low**.
 ---
 
 ## P1 — robustness + quick wins + highest-value features
-- [ ] **DBG** 🔴 S — `--debug` traces the PHP sent and the raw response (stdlib
-      `logging`, asserted via `caplog`). Biggest troubleshooting win.
-      → `log.py`, `core/transport.py`, `core/executor.py`, `config.py`, `cli.py`
+- [x] **DBG** 🔴 S — `--debug` traces the PHP sent and the raw response (stdlib
+      `logging`, asserted via `caplog`). → `log.py`, `core/transport.py`,
+      `config.py`, `cli.py`
 - [ ] **PROBE** 🔴 S — verify the chosen command-exec function actually returns
       output (probe token); fall back when it's listed-enabled but silently
       broken (suhosin/open_basedir). → `core/executor.py`

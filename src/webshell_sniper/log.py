@@ -8,6 +8,7 @@ containing ``[`` etc. — never gets mis-parsed as markup.
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterable, Sequence
 from typing import TypeVar
 
@@ -20,6 +21,25 @@ console = Console()
 error_console = Console(stderr=True)
 
 _T = TypeVar("_T")
+
+_logger = logging.getLogger("webshell_sniper")
+_debug_enabled = False
+
+
+def set_debug(enabled: bool) -> None:
+    """Enable/disable `--debug` tracing of payloads and raw responses."""
+    global _debug_enabled
+    _debug_enabled = enabled
+    if enabled and not _logger.handlers:
+        from rich.logging import RichHandler
+
+        _logger.addHandler(RichHandler(console=error_console, show_path=False, markup=False))
+        _logger.setLevel(logging.DEBUG)
+
+
+def debug(message: object) -> None:
+    if _debug_enabled:
+        _logger.debug(str(message))
 
 
 def _emit(prefix: str, message: object, style: str, *, err: bool = False) -> None:

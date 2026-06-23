@@ -11,6 +11,7 @@ import time
 
 import requests
 
+from .. import log
 from ..config import Config
 from ..exceptions import ConnectionFailed
 
@@ -70,11 +71,15 @@ class Transport:
 
     def send(self, php_code: str) -> str:
         """POST/GET ``php_code`` to the password parameter and return the body."""
+        log.debug(f"send {self.method} {self.url} <= {php_code}")
         if self.method == "POST":
-            return self._request("POST", data={self.password: php_code}).text
-        if self.method in ("GET", "REQUEST"):
-            return self._request("GET", params={self.password: php_code}).text
-        raise ConnectionFailed(f"Unsupported method: {self.method}")
+            body = self._request("POST", data={self.password: php_code}).text
+        elif self.method in ("GET", "REQUEST"):
+            body = self._request("GET", params={self.password: php_code}).text
+        else:
+            raise ConnectionFailed(f"Unsupported method: {self.method}")
+        log.debug(f"recv {len(body)}B => {body!r}")
+        return body
 
     def fetch(self, url: str, timeout: float) -> requests.Response:
         """GET an arbitrary URL through the same session/proxy/TLS settings.

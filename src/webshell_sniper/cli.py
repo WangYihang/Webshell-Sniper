@@ -53,6 +53,9 @@ def _build_parser() -> argparse.ArgumentParser:
         help="process multiple shells concurrently (default 1 = sequential)",
     )
     parser.add_argument(
+        "--debug", action="store_true", help="trace the PHP sent and raw responses"
+    )
+    parser.add_argument(
         "-o", "--output-dir", type=Path, default=Path.cwd(),
         help="where downloads and logs are written (default: cwd)",
     )
@@ -77,6 +80,7 @@ def _load_configs(args: argparse.Namespace) -> list[dict[str, str]]:
 def main(argv: list[str] | None = None) -> int:
     parser = _build_parser()
     args = parser.parse_args(argv)
+    log.set_debug(args.debug)
 
     configs = _load_configs(args)
     if not configs:
@@ -90,6 +94,7 @@ def main(argv: list[str] | None = None) -> int:
         user_agent=args.user_agent,
         encoder=args.encoder,
         workers=args.workers,
+        debug=args.debug,
         output_dir=args.output_dir,
     )
     config.output_dir.mkdir(parents=True, exist_ok=True)
