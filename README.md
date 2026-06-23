@@ -89,11 +89,11 @@ supplies the command (for `exec`) or remote path (for `download`).
 | `fwd`, `fwpf` | Find writable directories / writable PHP files |
 | `gdf` | List PHP `disable_functions` |
 | `fsb` | Find SUID-root binaries |
-| `ps` | Port-scan a CIDR range *from the target* |
+| `ps` | Port-scan a CIDR range *from the target* (optional banner grab) |
 | `dl`, `dla` | Download a file/tree (`dla` = custom `find` args) |
 | `ul` | Upload a local file to the target |
-| `rsh` | Reverse shell (socat → nc → bash fallback) |
-| `db` | MySQL manager |
+| `rsh` | Reverse shell (socat/nc/bash/python/perl/php; optional local listener) |
+| `db` | Database manager (MySQL / PostgreSQL): browse, dump, run SQL |
 | `aiw`, `aimw` | Inject a webshell / memory-resident webshell (random per-directory password) |
 | `fr` | Flag reaper (CTF) |
 | `setl` / `setr` | Run unrecognized input on **l**ocalhost / **r**emote target |

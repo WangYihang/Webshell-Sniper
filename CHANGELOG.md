@@ -23,6 +23,11 @@ EOL since 2020) and ships as an installable package.
 - File **upload** (`ul` command / `files.upload`) — v1 shipped only an empty
   `upload_file.py` stub.
 - `rm` command / self-removal (`unlink(__FILE__)`) for engagement cleanup.
+- **PostgreSQL** database backend (PDO) alongside MySQL behind a shared client,
+  plus a paginated table `dump`.
+- Reverse-shell **methods** (python/perl/php in addition to socat/nc/bash) and
+  an optional local listener helper.
+- Port-scan **banner grabbing**.
 - Pluggable payload **encoders** (`--encoder {base64,gzip,xor}`) that vary the
   on-wire encoding to frustrate static signatures — `xor` randomizes its key
   and decoder variable names every request. Closes v1's unfinished
