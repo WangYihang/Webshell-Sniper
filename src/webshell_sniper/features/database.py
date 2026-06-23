@@ -90,7 +90,8 @@ class SqlClient(ABC):
             for r in self.query(
                 "SELECT column_name FROM information_schema.columns "
                 f"WHERE table_schema={_sql_quote(schema)} "
-                f"AND table_name={_sql_quote(table)}"
+                f"AND table_name={_sql_quote(table)} "
+                "ORDER BY ordinal_position"
             )
         ]
 
