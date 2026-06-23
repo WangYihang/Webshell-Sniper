@@ -29,6 +29,7 @@ class Config:
     user_agent: str | None = None
     encoder: str = "base64"
     lang: str = "php"
+    split: int = 1  # >1: split the payload across N request params (PHP eval shells)
     retries: int = 2
     retry_backoff: float = 0.5
     workers: int = 1
@@ -46,7 +47,7 @@ ENV_PREFIX = "WEBSHELL_SNIPER_"
 
 # Only these fields are layerable from env/file (debug/output stay CLI-only).
 _LAYERABLE = {
-    "timeout", "proxy", "verify_ssl", "user_agent", "encoder", "lang",
+    "timeout", "proxy", "verify_ssl", "user_agent", "encoder", "lang", "split",
     "retries", "retry_backoff", "workers", "output_dir",
 }
 

