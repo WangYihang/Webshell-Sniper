@@ -74,6 +74,7 @@ webshell-sniper -f webshells.json
 | `pv`, `kv` | PHP version / kernel version |
 | `c` | Find config / database files in the webroot |
 | `r` / `read` | Read a remote file |
+| `rm` | Delete a remote file (no argument → the shell deletes itself) |
 | `fwd`, `fwpf` | Find writable directories / writable PHP files |
 | `gdf` | List PHP `disable_functions` |
 | `fsb` | Find SUID-root binaries |
@@ -81,7 +82,7 @@ webshell-sniper -f webshells.json
 | `dl`, `dla` | Download a file/tree (`dla` = custom `find` args) |
 | `rsh` | Reverse shell (socat → nc → bash fallback) |
 | `db` | MySQL manager |
-| `aiw`, `aimw` | Inject a webshell / memory-resident webshell |
+| `aiw`, `aimw` | Inject a webshell / memory-resident webshell (random per-directory password) |
 | `fr` | Flag reaper (CTF) |
 | `setl` / `setr` | Run unrecognized input on **l**ocalhost / **r**emote target |
 | `exec <cmd>` | Explicitly run a command on the target |

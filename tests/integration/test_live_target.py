@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from webshell_sniper.config import Config
+from webshell_sniper.core.php import php_string
 from webshell_sniper.core.webshell import WebShell
 from webshell_sniper.features import files, recon
 
@@ -58,3 +59,27 @@ def test_disabled_function_fallback(php_target: dict[str, object], tmp_path: Pat
 def test_find_writable_dirs(live_shell: WebShell):
     dirs = recon.find_writable_dirs(live_shell)
     assert any(d.endswith("webroot0") for d in dirs)
+
+
+def test_connect_reason_wrong_password(php_target: dict[str, object], tmp_path: Path):
+    ws = WebShell(
+        f"{php_target['base']}/index.php", "POST", "wrongparam", Config(output_dir=tmp_path)
+    )
+    assert not ws.connect()
+    assert ws.reason is not None
+    assert "did not execute" in ws.reason
+
+
+def test_connect_reason_unreachable(tmp_path: Path):
+    ws = WebShell("http://127.0.0.1:1/nope.php", "POST", "c", Config(output_dir=tmp_path))
+    assert not ws.connect()
+    assert ws.reason is not None
+    assert "unreachable" in ws.reason
+
+
+def test_remove_file(live_shell: WebShell):
+    target = str(Path(live_shell.webroot) / "to_delete.txt")
+    live_shell.run_php(f"file_put_contents({php_string(target)}, 'bye')")
+    assert files.file_exists(live_shell, target)
+    assert files.remove(live_shell, target)
+    assert not files.file_exists(live_shell, target)

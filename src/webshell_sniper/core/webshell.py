@@ -13,7 +13,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from ..config import Config
-from ..exceptions import WebshellError
+from ..exceptions import ConnectionFailed, ExecutionFailed, WebshellError
 from .executor import Executor
 from .transport import Transport
 
@@ -34,6 +34,7 @@ class WebShell:
         self.transport = Transport(url, method, self.info.password, config)
         self.executor = Executor(self.transport)
         self.working = False
+        self.reason: str | None = None
         self._webroot: str | None = None
         self._php_version: str | None = None
         self._kernel_version: str | None = None
@@ -60,17 +61,31 @@ class WebShell:
 
     # -- liveness --------------------------------------------------------------
     def connect(self) -> bool:
-        """Verify the endpoint is reachable *and* actually executes our code."""
+        """Verify the endpoint is reachable *and* actually executes our code.
+
+        On failure ``self.reason`` records *why* — distinguishing an unreachable
+        host from one that responds but doesn't run our payload (usually a wrong
+        password/parameter). Invaluable when triaging a batch of shells.
+        """
+        self.reason = None
         if not self.transport.is_reachable():
             self.working = False
-            return False
+            self.reason = "unreachable (no HTTP response)"
+            return self.working
         try:
             # run_php raises unless both sentinels come back, which only
             # happens if our PHP truly executed — a robust liveness check.
-            self.run_php("echo 'alive'")
+            if self.run_php("echo 'alive'").strip() != "alive":
+                self.working = False
+                self.reason = "reachable, but the payload did not execute (wrong password?)"
+                return self.working
             self.working = True
-        except WebshellError:
+        except ConnectionFailed as exc:
             self.working = False
+            self.reason = f"connection failed: {exc}"
+        except ExecutionFailed as exc:
+            self.working = False
+            self.reason = f"payload did not execute (wrong password/parameter?): {exc}"
         return self.working
 
     # -- cached metadata -------------------------------------------------------

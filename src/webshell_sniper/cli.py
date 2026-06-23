@@ -90,7 +90,7 @@ def main(argv: list[str] | None = None) -> int:
             webshells.append(ws)
             seen.add(ws.url)
         else:
-            log.error("Webshell does not respond / does not execute code.")
+            log.error(f"Webshell unusable: {ws.reason}")
 
     if not webshells:
         log.error("No working webshells, exiting.")

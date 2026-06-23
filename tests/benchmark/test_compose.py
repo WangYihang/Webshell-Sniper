@@ -49,9 +49,11 @@ def test_read_remote_file(bench_shell: WebShell):
 
 def test_inject_creates_working_shell(bench_shell: WebShell, tmp_path):
     dirs = recon.find_writable_dirs(bench_shell)
-    urls = inject.inject_webshell(bench_shell, "pw", dirs, output_dir=tmp_path)
-    assert urls
-    resp = requests.post(urls[0], data={"pw": "echo 'INJECTED_OK';"}, timeout=5)
+    # password=None exercises the per-directory random password path.
+    results = inject.inject_webshell(bench_shell, None, dirs, output_dir=tmp_path)
+    assert results
+    url, password = results[0]
+    resp = requests.post(url, data={password: "echo 'INJECTED_OK';"}, timeout=5)
     assert "INJECTED_OK" in resp.text
 
 
