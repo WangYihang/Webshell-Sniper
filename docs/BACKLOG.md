@@ -19,9 +19,9 @@ Effort **S/M/L**, value **🔴 high / 🟡 medium / 🟢 low**.
 - [x] **DBG** 🔴 S — `--debug` traces the PHP sent and the raw response (stdlib
       `logging`, asserted via `caplog`). → `log.py`, `core/transport.py`,
       `config.py`, `cli.py`
-- [ ] **PROBE** 🔴 S — verify the chosen command-exec function actually returns
-      output (probe token); fall back when it's listed-enabled but silently
-      broken (suhosin/open_basedir). → `core/executor.py`
+- [x] **PROBE** 🔴 S — probe the chosen command-exec function with a token and
+      fall back when it's listed-enabled but silently broken
+      (suhosin/open_basedir). → `core/executor.py`
 - [ ] **CHUNK** 🔴 M — ranged/chunked large-file download (loop offset+length)
       to avoid PHP `memory_limit`/POST limits; drive the progress bar by size.
       → `features/files.py`
