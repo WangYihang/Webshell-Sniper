@@ -91,6 +91,7 @@ supplies the command (for `exec`) or remote path (for `download`).
 | `fsb` | Find SUID-root binaries |
 | `ps` | Port-scan a CIDR range *from the target* |
 | `dl`, `dla` | Download a file/tree (`dla` = custom `find` args) |
+| `ul` | Upload a local file to the target |
 | `rsh` | Reverse shell (socat → nc → bash fallback) |
 | `db` | MySQL manager |
 | `aiw`, `aimw` | Inject a webshell / memory-resident webshell (random per-directory password) |

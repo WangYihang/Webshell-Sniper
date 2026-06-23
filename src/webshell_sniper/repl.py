@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import subprocess
 import time
+from pathlib import Path
 
 import cmd2
 
@@ -133,6 +134,20 @@ class Repl(cmd2.Cmd):
                     files.download(ws, path, self.config.output_dir)
             except WebshellError as exc:
                 log.error(f"download failed: {exc}")
+
+    def do_ul(self, line: cmd2.Statement) -> None:
+        """ul <local-path> — upload a local file to the target(s)."""
+        local = str(line).strip() or input("Local path: ").strip()
+        if not local or not Path(local).is_file():
+            log.error("Local file not found.")
+            return
+        for ws in self.webshells:
+            remote = self._ask(f"Remote path on {ws.url}", f"{ws.webroot}/{Path(local).name}")
+            log.info(f"[upload] {ws}")
+            try:
+                files.upload(ws, local, remote)
+            except WebshellError as exc:
+                log.error(f"upload failed: {exc}")
 
     def do_dla(self, _: cmd2.Statement) -> None:
         """Download a tree using custom `find` arguments (e.g. -size -500k)."""

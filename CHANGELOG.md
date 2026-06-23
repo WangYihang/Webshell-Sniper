@@ -20,6 +20,8 @@ EOL since 2020) and ships as an installable package.
   unreachable host from one that responds but does not execute the payload
   (usually a wrong password/parameter) — surfaced by the CLI when a shell is
   rejected.
+- File **upload** (`ul` command / `files.upload`) — v1 shipped only an empty
+  `upload_file.py` stub.
 - `rm` command / self-removal (`unlink(__FILE__)`) for engagement cleanup.
 - Non-interactive `--batch {info,exec,inject,download}` mode that runs one
   action across all loaded shells and writes a JSON report — generalises the

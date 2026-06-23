@@ -85,6 +85,15 @@ def test_remove_file(live_shell: WebShell):
     assert not files.file_exists(live_shell, target)
 
 
+def test_upload_file(live_shell: WebShell, tmp_path: Path):
+    local = tmp_path / "payload.bin"
+    local.write_bytes(b"uploaded-\x00-content")
+    remote = str(Path(live_shell.webroot) / "uploaded.bin")
+    assert files.upload(live_shell, local, remote)
+    assert files.file_exists(live_shell, remote)
+    assert "uploaded-" in files.read_file(live_shell, remote)
+
+
 def test_batch_exec_and_info(php_target: dict[str, object], tmp_path: Path):
     from webshell_sniper.batch import run_batch
 
