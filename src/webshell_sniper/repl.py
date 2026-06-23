@@ -354,6 +354,7 @@ class Repl(cmd2.Cmd):
     def _database_repl(self, client: database.SqlClient) -> None:
         help_text = (
             "  d=databases/schemas  t=tables  c=columns  dump=dump-table  "
+            "csv=export-table-csv  rf=read-server-file  wf=write-server-file  "
             "u=user  v=version  ns=current  e=exec-sql  q=quit"
         )
         log.info(help_text)
@@ -395,6 +396,20 @@ class Repl(cmd2.Cmd):
                         log.table([f"col{i}" for i in range(len(rows[0]))], rows)
                     else:
                         log.warning("No rows.")
+                elif cmd == "csv":
+                    schema = self._ask("Schema", client.current_namespace())
+                    table = input("Table: ").strip()
+                    out = self.config.output_dir / f"{schema}.{table}.csv"
+                    n = client.export_csv(schema, table, out)
+                    log.success(f"Exported {n} row(s) -> {out}")
+                elif cmd == "rf":
+                    path = input("Server file path: ").strip()
+                    log.raw(client.read_server_file(path))
+                elif cmd == "wf":
+                    local = input("Local file: ").strip()
+                    remote = input("Server destination path: ").strip()
+                    ok = client.write_server_file(remote, Path(local).read_bytes())
+                    log.success(f"write_server_file: {ok}")
                 else:
                     log.warning(help_text)
             except WebshellError as exc:

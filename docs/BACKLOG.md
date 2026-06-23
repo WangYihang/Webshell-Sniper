@@ -67,8 +67,9 @@ Effort **S/M/L**, value **🔴 high / 🟡 medium / 🟢 low**.
 - [x] **CFG** 🟡 S — `resolve_config` layers defaults < `config.toml`
       (`~/.config/webshell-sniper/`, XDG-aware) < `WEBSHELL_SNIPER_*` env <
       CLI flags, with type coercion; `--config` overrides the path. → `config.py`, `cli.py`
-- [ ] **DBFS** 🟡 M — DB ↔ filesystem (MySQL `LOAD_FILE`/`INTO OUTFILE`, PG
-      `COPY`) and full-table export to local CSV. → `features/database.py`
+- [x] **DBFS** 🟡 M — DB ↔ filesystem: MySQL `LOAD_FILE`/`INTO DUMPFILE`, PG
+      `pg_read_file`/`COPY ... TO`, plus paged full-table export to local CSV
+      (`export_csv`). REPL `db` gains `csv`/`rf`/`wf`. → `features/database.py`, `repl.py`
 - [x] **CMDSHELL** 🟡 M — command-only (non-`eval`) shells: done via
       `CommandBackend` + `--lang command` (see LANG-2).
 - [ ] **ENC+** 🟡 M — more evasion: encoders that avoid the literal

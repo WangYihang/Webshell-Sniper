@@ -10,7 +10,10 @@ join, so values containing commas no longer corrupt the output.
 
 from __future__ import annotations
 
+import base64
+import csv
 from abc import ABC, abstractmethod
+from pathlib import Path
 
 from .. import log
 from ..core.php import php_string
@@ -104,6 +107,44 @@ class SqlClient(ABC):
         rows = self.query(f"SELECT * FROM {ident} LIMIT {int(limit)} OFFSET {int(offset)}")
         return columns, rows
 
+    # -- DB <-> filesystem (DBFS) ---------------------------------------------
+    def export_csv(
+        self, schema: str, table: str, local_path: str | Path, page_size: int = 1000
+    ) -> int:
+        """Stream a whole table to a local CSV file, paging to bound memory.
+
+        Engine-agnostic (it reuses ``SELECT ... LIMIT/OFFSET``). Returns the
+        number of data rows written.
+        """
+        columns = self.columns(schema, table)
+        ident = f"{self._quote_ident(schema)}.{self._quote_ident(table)}"
+        total = 0
+        with open(local_path, "w", newline="", encoding="utf-8") as handle:
+            writer = csv.writer(handle)
+            if columns:
+                writer.writerow(columns)
+            offset = 0
+            while True:
+                rows = self.query(
+                    f"SELECT * FROM {ident} LIMIT {int(page_size)} OFFSET {int(offset)}"
+                )
+                if not rows:
+                    break
+                writer.writerows(rows)
+                total += len(rows)
+                if len(rows) < page_size:
+                    break
+                offset += page_size
+        return total
+
+    def read_server_file(self, path: str) -> str:
+        """Read a file on the *DB server* host via SQL (FILE-type privileges)."""
+        raise WebshellError(f"{type(self).__name__} cannot read server files")
+
+    def write_server_file(self, path: str, data: bytes) -> bool:
+        """Write bytes to a file on the DB server host via SQL."""
+        raise WebshellError(f"{type(self).__name__} cannot write server files")
+
 
 class MysqlManager(SqlClient):
     """MySQL/MariaDB via the ``mysqli`` extension."""
@@ -135,6 +176,15 @@ class MysqlManager(SqlClient):
 
     def current_user(self) -> str:
         return self._scalar("SELECT CURRENT_USER()")
+
+    def read_server_file(self, path: str) -> str:
+        """``LOAD_FILE`` — needs the ``FILE`` privilege and ``secure_file_priv``."""
+        return self._scalar(f"SELECT LOAD_FILE({_sql_quote(path)})")
+
+    def write_server_file(self, path: str, data: bytes) -> bool:
+        """``INTO DUMPFILE`` writes one raw value verbatim (good for binaries)."""
+        self.query(f"SELECT 0x{data.hex()} INTO DUMPFILE {_sql_quote(path)}")
+        return True
 
 
 class PostgresManager(SqlClient):
@@ -169,6 +219,19 @@ class PostgresManager(SqlClient):
 
     def current_user(self) -> str:
         return self._scalar("SELECT current_user")
+
+    def read_server_file(self, path: str) -> str:
+        """``pg_read_file`` — needs superuser (or ``pg_read_server_files``)."""
+        return self._scalar(f"SELECT pg_read_file({_sql_quote(path)})")
+
+    def write_server_file(self, path: str, data: bytes) -> bool:
+        """``COPY ... TO`` a server path (text; decoded from base64 on the server)."""
+        b64 = base64.b64encode(data).decode()
+        self.query(
+            f"COPY (SELECT convert_from(decode({_sql_quote(b64)},'base64'),'UTF8')) "
+            f"TO {_sql_quote(path)}"
+        )
+        return True
 
 
 ENGINES = {"mysql": MysqlManager, "pgsql": PostgresManager}
