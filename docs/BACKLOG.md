@@ -44,6 +44,7 @@ Effort **S/M/L**, value **🔴 high / 🟡 medium / 🟢 low**.
       decode expression (evasion works on every backend). → `encoders.py`, `Backend`
 - [ ] **LANG-2** 🟡 L — add a second backend (generic command-only shell, then
       JSP) + `--lang`; folds in **CMDSHELL** (shell-type as backend variant).
+      *(benchmark target ready: `jsp` service + `tests/benchmark/test_jsp.py`)*
 - [ ] **CHANNEL** 🟡 S — formalize `Transport` as a `Channel` protocol. → `core/transport.py`
 - [ ] **RENDER** 🟡 M — `Renderer` (rich/json/quiet); features return structured
       data (subsumes **PURE**). → `log.py`, `features/*`, `repl.py`, `batch.py`

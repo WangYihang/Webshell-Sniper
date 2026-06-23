@@ -50,3 +50,14 @@ services:
       interval: 3s
       timeout: 5s
       retries: 20
+
+  # A second-language target: JSP/Tomcat command webshell (param `c`).
+  # Java has no eval(), so this is a command-only shell — exactly the case the
+  # `Backend` capability model is designed for. Reachable at :8081/cmd.jsp.
+  jsp:
+    image: ${TOMCAT_IMAGE:-tomcat:10.1-jre17}
+    container_name: webshell-sniper-jsp
+    ports:
+      - "127.0.0.1:8081:8080"
+    volumes:
+      - ./jsp/webapp:/usr/local/tomcat/webapps/ROOT:ro
