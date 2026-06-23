@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import socket
 import threading
 import time
@@ -160,6 +161,61 @@ def test_reverse_shell_bash_connects_back(php_target: dict[str, object], tmp_pat
     thread.join(timeout=10)
     server.close()
     assert b"PWNED" in received.get("data", b"")
+
+
+def test_socks_tunnel_proxies_tcp(php_target: dict[str, object], tmp_path: Path):
+    """Plant the tunnel endpoint and proxy a TCP echo through the SOCKS5 server."""
+    import struct
+
+    from webshell_sniper.features import tunnel
+
+    webroot = php_target["webroot"]
+    assert isinstance(webroot, Path)
+    (webroot / "tun.php").write_text(tunnel.tunnel_php_source())
+    tunnel_url = f"{php_target['base']}/tun.php"
+
+    # A local echo service that only the "target" (same host) can reach.
+    echo = socket.socket()
+    echo.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    echo.bind(("127.0.0.1", 0))
+    echo.listen(1)
+    echo_port = echo.getsockname()[1]
+
+    def echo_serve() -> None:
+        conn, _ = echo.accept()
+        while True:
+            data = conn.recv(4096)
+            if not data:
+                break
+            conn.sendall(data)
+        conn.close()
+
+    threading.Thread(target=echo_serve, daemon=True).start()
+
+    server = tunnel.serve(tunnel_url, local_port=0, config=Config(output_dir=tmp_path, timeout=10))
+    socks_port = server.server_address[1]
+    try:
+        client = socket.create_connection(("127.0.0.1", socks_port), timeout=10)
+        client.sendall(b"\x05\x01\x00")  # greeting: no-auth
+        assert client.recv(2) == b"\x05\x00"
+        client.sendall(
+            b"\x05\x01\x00\x01" + socket.inet_aton("127.0.0.1") + struct.pack(">H", echo_port)
+        )
+        reply = client.recv(10)
+        assert reply[1] == 0x00, "SOCKS5 CONNECT was not granted"
+
+        client.sendall(b"ping-through-tunnel")
+        client.settimeout(10)
+        received = b""
+        deadline = time.time() + 10
+        while b"ping-through-tunnel" not in received and time.time() < deadline:
+            with contextlib.suppress(socket.timeout):
+                received += client.recv(4096)
+        assert b"ping-through-tunnel" in received
+        client.close()
+    finally:
+        server.shutdown()
+        echo.close()
 
 
 def test_port_scan_with_banner(php_target: dict[str, object], tmp_path: Path):

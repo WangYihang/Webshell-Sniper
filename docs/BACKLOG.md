@@ -85,9 +85,12 @@ Effort **S/M/L**, value **🔴 high / 🟡 medium / 🟢 low**.
       → `features/*`, `repl.py`
 
 ## P3 — bigger / nice-to-have
-- [ ] **TUNNEL** 🔴 L — SOCKS5 / port-forward through the shell (reGeorg-style):
-      local SOCKS server relays TCP over HTTP via a tunnel PHP endpoint. The
-      headline pivot capability. → `features/tunnel.py` + tunnel endpoint
+- [x] **TUNNEL** 🔴 L — reGeorg-style SOCKS5 pivot: a local SOCKS5 server relays
+      TCP over HTTP to a planted tunnel endpoint that bridges each connection to
+      the target socket via a background relay process + on-disk spool files
+      (solving PHP's stateless-request socket problem). REPL `socks`; verified
+      end-to-end (curl/proxychains-style TCP) against a live target.
+      → `features/tunnel.py`, `repl.py`
 - [x] **GEN** 🟡 M — `generate.generate_webshell`/`write_webshell` produce a PHP
       shell obfuscated through the encoder layer (base64/b64var/gzip/xor); CLI
       `--generate PASSWORD` writes one and exits. Each variant verified to run

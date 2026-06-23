@@ -134,6 +134,9 @@ by default, or on the target after `setr`. cmd2 gives you history (↑/↓),
   Language specifics live behind a `Backend` abstraction (`docs/ARCHITECTURE.md`).
 - `--generate PASSWORD` writes a ready-to-plant PHP shell (obfuscated with the
   chosen `--encoder`) and exits.
+- The REPL `socks` command plants a reGeorg-style tunnel endpoint and opens a
+  local **SOCKS5 proxy**, so `curl --socks5`, `proxychains` or a browser can
+  reach hosts only the target can see (the headline pivot capability).
 
 ## Output, config & sessions
 
