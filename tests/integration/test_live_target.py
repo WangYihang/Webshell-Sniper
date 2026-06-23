@@ -74,6 +74,23 @@ def test_every_encoder_executes(php_target: dict[str, object], tmp_path: Path, e
     assert ws.run_php(r"""echo "q'q" """) == "q'q"
 
 
+@pytest.mark.parametrize("encoder", ["base64", "b64var", "gzip", "xor"])
+def test_generated_shell_executes(php_target: dict[str, object], tmp_path: Path, encoder: str):
+    """A freshly generated webshell must run when planted on a real target."""
+    from webshell_sniper.features import generate
+
+    webroot = php_target["webroot"]
+    assert isinstance(webroot, Path)
+    src = generate.generate_webshell("genpw", encoder=encoder)
+    (webroot / f"gen_{encoder}.php").write_text(src)
+
+    ws = WebShell(
+        f"{php_target['base']}/gen_{encoder}.php", "POST", "genpw", Config(output_dir=tmp_path)
+    )
+    assert ws.connect(), f"generated {encoder} shell did not execute"
+    assert ws.run_command("echo gen-ok").strip() == "gen-ok"
+
+
 @pytest.mark.parametrize("split", [2, 4])
 def test_multipart_payload_executes(php_target: dict[str, object], tmp_path: Path, split: int):
     """A payload split across N params must reassemble + run on a real target."""

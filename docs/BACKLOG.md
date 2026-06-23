@@ -85,8 +85,10 @@ Effort **S/M/L**, value **🔴 high / 🟡 medium / 🟢 low**.
 - [ ] **TUNNEL** 🔴 L — SOCKS5 / port-forward through the shell (reGeorg-style):
       local SOCKS server relays TCP over HTTP via a tunnel PHP endpoint. The
       headline pivot capability. → `features/tunnel.py` + tunnel endpoint
-- [ ] **GEN** 🟡 M — generate an initial obfuscated webshell file (reuse
-      `encoders`), for planting the first shell. → `features/generate.py`, CLI `generate`
+- [x] **GEN** 🟡 M — `generate.generate_webshell`/`write_webshell` produce a PHP
+      shell obfuscated through the encoder layer (base64/b64var/gzip/xor); CLI
+      `--generate PASSWORD` writes one and exits. Each variant verified to run
+      live. → `features/generate.py`, `cli.py`
 - [ ] **PTY** 🟢 S — reverse-shell PTY upgrade helper (`python -c pty.spawn` +
       `stty` hints). → `features/revshell.py`
 - [ ] **COV** 🟢 M — raise REPL/CLI coverage with cmd2's test harness. → `tests/`

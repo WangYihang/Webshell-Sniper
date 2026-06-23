@@ -57,6 +57,10 @@ def _build_parser() -> argparse.ArgumentParser:
         help="split each payload across N request params (PHP eval shells; evasion)",
     )
     parser.add_argument(
+        "--generate", metavar="PASSWORD",
+        help="generate a PHP webshell (param/password = PASSWORD), write it, then exit",
+    )
+    parser.add_argument(
         "--batch", choices=batch.ACTIONS,
         help="run an action across all shells non-interactively, write a JSON report, then exit",
     )
@@ -124,6 +128,14 @@ def _run(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
     )
     config.debug = args.debug  # debug is a CLI-only flag, not layered
     config.output_dir.mkdir(parents=True, exist_ok=True)
+
+    if args.generate:
+        from .features import generate
+
+        path = generate.write_webshell(config.output_dir, args.generate, encoder=config.encoder)
+        log.success(f"Generated webshell ({config.encoder}) -> {path}")
+        log.info(f"Use: {path.name}?{args.generate}=<php> (or POST {args.generate}=<php>)")
+        return 0
 
     restored: Session | None = None
     if args.session:
