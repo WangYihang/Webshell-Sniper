@@ -11,6 +11,7 @@ from . import __version__, batch, encoders, log
 from .config import Config
 from .core.webshell import WebShell
 from .repl import Repl
+from .session import Session
 
 EPILOG = """\
 examples:
@@ -31,6 +32,9 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument("target", nargs="*", help="URL METHOD PASSWORD (or a single .json file)")
     parser.add_argument("-f", "--file", help="load webshells from a JSON file")
+    parser.add_argument(
+        "--session", help="restore a saved session JSON (shells + cwd) and resume the REPL"
+    )
     parser.add_argument("--timeout", type=float, default=15.0, help="HTTP timeout (default 15s)")
     parser.add_argument("--proxy", help="proxy URL, e.g. http://127.0.0.1:8080")
     parser.add_argument(
@@ -97,11 +101,6 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _run(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
-    configs = _load_configs(args)
-    if not configs:
-        parser.print_help()
-        return 1
-
     config = Config(
         timeout=args.timeout,
         proxy=args.proxy,
@@ -115,10 +114,24 @@ def _run(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
     )
     config.output_dir.mkdir(parents=True, exist_ok=True)
 
+    restored: Session | None = None
+    if args.session:
+        restored = Session.load(args.session, config)
+        candidates = restored.shells
+        log.info(f"Restoring session from {args.session} ({len(candidates)} shell(s))")
+    else:
+        configs = _load_configs(args)
+        if not configs:
+            parser.print_help()
+            return 1
+        candidates = [
+            WebShell(entry["url"], entry["method"], entry["password"], config)
+            for entry in configs
+        ]
+
     webshells: list[WebShell] = []
     seen: set[str] = set()
-    for entry in configs:
-        ws = WebShell(entry["url"], entry["method"], entry["password"], config)
+    for ws in candidates:
         log.info(f"Checking {ws} ...")
         if ws.url in seen:
             log.warning("Duplicate URL, skipping.")
@@ -142,7 +155,9 @@ def _run(args: argparse.Namespace, parser: argparse.ArgumentParser) -> int:
         return 0 if ok else 2
 
     log.success(f"{len(webshells)} webshell(s) online. Entering interactive mode.")
-    return Repl(webshells, config).cmdloop() or 0
+    if restored is not None:
+        restored.shells = webshells  # keep restored cwd/history, swap in live shells
+    return Repl(webshells, config, session=restored).cmdloop() or 0
 
 
 if __name__ == "__main__":

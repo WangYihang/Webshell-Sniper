@@ -59,7 +59,9 @@ Effort **S/M/L**, value **🔴 high / 🟡 medium / 🟢 low**.
       Features already return structured data, so this decouples presentation
       without touching call sites. Full per-feature compute/presentation split
       (**PURE**) remains its own item. → `render.py`, `log.py`, `cli.py`
-- [ ] **SESSION** 🟢 S — a `Session` object for cwd / shells / history.
+- [x] **SESSION** 🟢 S — `Session` object owns shells/cwd/local_exec/history with
+      save/restore; REPL state is session-backed (properties), `save`/`hist`
+      commands, and `--session FILE` resumes a snapshot. → `session.py`, `repl.py`, `cli.py`
 
 ## P2 — capability + DX
 - [ ] **CFG** 🟡 S — config file (`~/.config/webshell-sniper/config.toml`) +

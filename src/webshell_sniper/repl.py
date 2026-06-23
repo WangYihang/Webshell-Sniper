@@ -12,7 +12,6 @@ import contextlib
 import importlib.metadata
 import shlex
 import subprocess
-import time
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from pathlib import Path
@@ -24,6 +23,7 @@ from .config import Config
 from .core.webshell import WebShell
 from .exceptions import WebshellError
 from .features import database, enum, files, inject, portscan, recon, revshell
+from .session import Session
 from .utils.network import get_ip_address
 
 BANNER = r"""
@@ -44,12 +44,12 @@ BANNER = r"""
 class Repl(cmd2.Cmd):
     prompt = "sniper => "
 
-    def __init__(self, webshells: list[WebShell], config: Config):
+    def __init__(
+        self, webshells: list[WebShell], config: Config, session: Session | None = None
+    ):
         super().__init__(allow_cli_args=False)
-        self.webshells = webshells
+        self.session = session or Session(webshells)
         self.config = config
-        self.local_exec = True
-        self.cwd = ""  # client-tracked remote working directory
         self.intro = BANNER
         for name in ("edit", "macro", "run_pyscript", "run_script", "shortcuts"):
             self.hidden_commands.append(name)
@@ -58,6 +58,27 @@ class Repl(cmd2.Cmd):
             {"print": "p", "read": "r", "quit": "q", "exit": "q", "h": "help"}
         )
         self._load_plugins()
+
+    # -- session-backed state (kept as properties so command bodies are simple)
+    @property
+    def webshells(self) -> list[WebShell]:
+        return self.session.shells
+
+    @property
+    def cwd(self) -> str:
+        return self.session.cwd
+
+    @cwd.setter
+    def cwd(self, value: str) -> None:
+        self.session.cwd = value
+
+    @property
+    def local_exec(self) -> bool:
+        return self.session.local_exec
+
+    @local_exec.setter
+    def local_exec(self, value: bool) -> None:
+        self.session.local_exec = value
 
     def _load_plugins(self) -> None:
         """Register third-party command sets from the ``webshell_sniper.commands``
@@ -469,31 +490,41 @@ class Repl(cmd2.Cmd):
         """exec <cmd> — explicitly run a command on the target."""
         command = str(line).strip()
         if command:
+            self.session.record(f"exec {command}")
             self._each(lambda ws: log.raw(self._remote_command(ws, command)), "exec")
 
     def default(self, statement: cmd2.Statement) -> None:
         command = statement.raw.strip()
         if not command:
             return
+        self.session.record(command)
         if self.local_exec:
             log.info(f"[local] {command}")
             subprocess.run(command, shell=True)  # noqa: S602 - intentional local exec
         else:
             self._each(lambda ws: log.raw(self._remote_command(ws, command)), "remote")
 
+    def do_hist(self, _: cmd2.Statement) -> None:
+        """Show the commands recorded in this session (vs cmd2's line history)."""
+        if not self.session.history:
+            log.warning("No commands recorded yet.")
+            return
+        for i, command in enumerate(self.session.history, 1):
+            log.success(f"{i:>3}  {command}")
+
+    def do_save(self, _: cmd2.Statement) -> None:
+        """Snapshot the session (shells + cwd + history) to a JSON file."""
+        self._save()
+
     # -- lifecycle -------------------------------------------------------------
     def do_q(self, _: cmd2.Statement) -> bool:
-        """Quit (saving the live webshells to a timestamped JSON file)."""
+        """Quit (snapshotting the session to a timestamped JSON file)."""
         self._save()
         return True
 
     def _save(self) -> None:
-        import json
-
-        out = self.config.output_dir / f"webshells_{int(time.time())}.json"
-        data = [ws.info.to_dict() for ws in self.webshells]
-        out.write_text(json.dumps(data, indent=2))
-        log.info(f"Saved {len(data)} webshell(s) to {out}")
+        out = self.session.save(self.config.output_dir)
+        log.info(f"Saved session ({len(self.webshells)} shell(s)) to {out}")
 
 
 # Group commands in `help` output (best-effort; tolerate cmd2 API differences).
@@ -514,3 +545,4 @@ with contextlib.suppress(Exception):
         [Repl.do_shell, Repl.do_cd, Repl.do_pwd, Repl.do_exec, Repl.do_setl, Repl.do_setr],
         "Shell / exec",
     )
+    cmd2.categorize([Repl.do_hist, Repl.do_save, Repl.do_q], "Session")
