@@ -76,8 +76,18 @@ def list_directories(ws: WebShell, path: str) -> list[str]:
 
 
 def _local_path(ws: WebShell, remote_path: str, output_dir: Path) -> Path:
-    """Mirror ``remote_path`` under ``output_dir/<domain>/``."""
-    return output_dir / get_domain(ws.url) / remote_path.lstrip("/")
+    """Mirror ``remote_path`` under ``output_dir/<domain>/``.
+
+    The remote path comes from the *target's* ``find`` output, so a malicious or
+    honeypot server could embed ``..`` to write outside the output directory on
+    the operator's machine. Any such attempt is flattened to the basename.
+    """
+    base = (output_dir / get_domain(ws.url)).resolve()
+    candidate = (base / remote_path.lstrip("/")).resolve()
+    if not candidate.is_relative_to(base):
+        log.warning(f"Path traversal blocked; flattening: {remote_path}")
+        candidate = base / Path(remote_path).name
+    return candidate
 
 
 def _download_one(ws: WebShell, remote_path: str, local_path: Path) -> bool:

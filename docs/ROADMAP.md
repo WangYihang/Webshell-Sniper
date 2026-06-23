@@ -31,11 +31,12 @@ releasable. Legend: effort **S/M/L**, risk **L/M/H**.
 - [x] Concurrent multi-shell ops (thread pool, `--workers`) — `repl.py`, `batch.py`
 - [x] Transport retry/backoff (connection errors only) — `core/transport.py`
 
-## v2.5 — Distribution & assurance
-- [ ] PyPI publish workflow + pipx docs — `.github/workflows/`, `README.md` — S/L
-- [ ] Raise test coverage (revshell/flag-reaper/memory-inject/mount) + coverage
-      gate — `tests/`, `ci.yml` — M/L
-- [ ] Security self-review — M/L
+## v2.5 — Distribution & assurance ✅
+- [x] PyPI publish workflow (trusted publishing) + pipx/uv-tool docs —
+      `.github/workflows/release.yml`, `README.md`
+- [x] Raised coverage 51% → 65% (revshell/flag-reaper/memory-inject/mount/cli)
+      + a `--cov-fail-under=60` gate — `tests/`, `ci.yml`
+- [x] Security self-review — fixed a download path-traversal; added `SECURITY.md`
 
 ## Non-goals
 GUI; Windows *target* support (POSIX-focused); the `dev` branch's scoreboard

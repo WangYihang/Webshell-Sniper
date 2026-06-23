@@ -161,6 +161,23 @@ def test_port_scan_with_banner(php_target: dict[str, object], tmp_path: Path):
     assert "TestBanner" in output
 
 
+def test_cli_batch_exec_writes_report(php_target: dict[str, object], tmp_path: Path):
+    import json
+
+    from webshell_sniper.cli import main
+
+    rc = main(
+        [f"{php_target['base']}/index.php", "POST", "c",
+         "--batch", "exec", "--arg", "echo cli-batch", "-o", str(tmp_path)]
+    )
+    assert rc == 0
+    reports = list(tmp_path.glob("batch_exec_*.json"))
+    assert reports
+    data = json.loads(reports[0].read_text())
+    assert data[0]["ok"]
+    assert "cli-batch" in data[0]["data"]
+
+
 def test_cwd_tracking(php_target: dict[str, object], tmp_path: Path):
     from webshell_sniper.repl import Repl
 

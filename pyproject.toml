@@ -44,6 +44,7 @@ dev = [
     "ruff>=0.6",
     "mypy>=1.10",
     "types-requests",
+    "pytest-cov>=7.1.0",
 ]
 
 [tool.ruff]
@@ -79,3 +80,7 @@ markers = [
     "integration: tests that require a live PHP target (spawned via `php -S`)",
     "benchmark: tests that require the docker-compose stack (see docker/)",
 ]
+
+[tool.coverage.run]
+source = ["webshell_sniper"]
+omit = ["*/__main__.py"]

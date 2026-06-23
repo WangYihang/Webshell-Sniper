@@ -37,10 +37,13 @@ uv sync                      # creates the venv and installs everything
 uv run webshell-sniper --help
 ```
 
-Or as a normal package:
+Or as a normal package / standalone tool:
 
 ```bash
 pip install .                # add '.[mount]' for the FUSE mount feature
+
+# once published to PyPI, install it isolated as a CLI:
+uv tool install webshell-sniper      # or: pipx install webshell-sniper
 webshell-sniper --help
 ```
 

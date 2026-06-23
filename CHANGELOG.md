@@ -66,6 +66,12 @@ EOL since 2020) and ships as an installable package.
   so discovering one dropped shell does not expose the others; returns
   `(url, password)` pairs.
 
+### Security
+- **Download path traversal**: the local save path is built from the target's
+  (server-controlled) `find` listing; a malicious/honeypot target could escape
+  the output directory via `..`. Such paths are now flattened to a basename.
+  Added `SECURITY.md` (authorized-use + reporting policy).
+
 ### Fixed
 - `mount.py` (now `webshell_sniper.mount`): `rmdir` referenced an undefined
   `mode`; `write` opened files read-only; `random_string` argument order was
