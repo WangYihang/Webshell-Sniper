@@ -23,16 +23,19 @@ class PHPTransport:
 
 
 class CommandTransport:
-    """Mimics a command-only shell: ``echo TOK; <cmd>; echo TOK``."""
+    """Mimics a command-only shell; the executor base64-wraps the script."""
 
     def __init__(self, reply: str = ""):
         self.reply = reply
         self.cmd = ""
 
     def send(self, payload: str) -> str:
-        # payload == "echo TOK; <cmd> 2>&1; echo TOK"
-        token = payload.split(";", 1)[0].replace("echo ", "").strip()
-        self.cmd = payload
+        # payload == "echo B64|base64 -d|sh"; B64 -> "echo TOK; <cmd>; echo TOK"
+        wrap = re.fullmatch(r"echo (\S+)\|base64 -d\|sh", payload)
+        assert wrap, f"unexpected command payload: {payload}"
+        script = base64.b64decode(wrap.group(1)).decode()
+        self.cmd = script
+        token = script.split(";", 1)[0].replace("echo ", "").strip()
         return f"{token}{self.reply}{token}"
 
 

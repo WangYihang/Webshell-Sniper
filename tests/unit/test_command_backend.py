@@ -1,5 +1,6 @@
 """Command-shell backend: run_command via a sentinel-wrapped shell command."""
 
+import base64
 import re
 
 import pytest
@@ -22,9 +23,16 @@ def test_backend_registry():
 
 
 class CommandShellSim:
-    """Simulates a JSP-style command shell: the param is a /bin/sh -c script."""
+    """Simulates a JSP-style command shell: the param is a /bin/sh -c script.
+
+    The executor now base64-wraps the script (``echo B64|base64 -d|sh``), so we
+    undo that first, then run the bounded ``echo TOK; cmd; echo TOK`` script.
+    """
 
     def send(self, payload: str) -> str:
+        wrap = re.fullmatch(r"echo (\S+)\|base64 -d\|sh", payload)
+        if wrap:
+            payload = base64.b64decode(wrap.group(1)).decode()
         match = re.match(r"echo (\S+); (.*); echo \1$", payload)
         if not match:
             return ""

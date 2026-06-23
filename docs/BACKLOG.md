@@ -43,8 +43,11 @@ Effort **S/M/L**, value **🔴 high / 🟡 medium / 🟢 low**.
       command-only shells fall back to POSIX commands. `features/files.py` no
       longer contains a PHP literal. → `core/backends/`, `core/executor.py`,
       `features/files.py`
-- [ ] **ENC2** 🟡 M — split encoders into a byte transform + a per-backend
-      decode expression (evasion works on every backend). → `encoders.py`, `Backend`
+- [x] **ENC2** 🟡 M — encoders split into language-neutral `ByteTransform`s
+      (base64/gzip/xor) + per-backend decode wrappers (`Backend.wrap_eval` /
+      `wrap_command`). PHP eval output is byte-identical to before; command-only
+      shells now get base64-wrapped (`base64 -d|sh`) evasion too, degrading
+      gzip/xor → base64 where unsupported. → `encoders.py`, `core/backends/`
 - [x] **LANG-2** 🟡 L — `CommandBackend` (command-only shells) + `--lang
       {php,command}`; validated against the live JSP/Tomcat target. Folds in
       **CMDSHELL**. → `core/backends/command.py`, `core/executor.py`, `cli.py`

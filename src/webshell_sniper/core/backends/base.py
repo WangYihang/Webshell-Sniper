@@ -9,6 +9,8 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 
+from ...encoders import EncodedPayload
+
 # Given a base64 expression of a command, return code that runs it and prints
 # the combined stdout/stderr.
 CommandBuilder = Callable[[str], str]
@@ -21,6 +23,18 @@ class Backend(ABC):
     # Whether the shell can evaluate arbitrary code in its language (PHP eval).
     # Command-only shells (e.g. a JSP Runtime.exec shell) set this False.
     supports_eval: bool = True
+    # Byte transforms this backend can decode on the target (see encoders.py).
+    # The universal minimum is base64; eval backends add gzip/xor.
+    supported_transforms: frozenset[str] = frozenset({"base64"})
+
+    # -- payload decode wrappers ----------------------------------------------
+    def wrap_eval(self, payload: EncodedPayload) -> str:
+        """Decode ``payload`` and ``eval`` the reconstructed code (eval backends)."""
+        raise NotImplementedError(f"{self.name} cannot evaluate code")
+
+    def wrap_command(self, payload: EncodedPayload) -> str:
+        """Decode ``payload`` into a shell script and run it (command shells)."""
+        raise NotImplementedError(f"{self.name} has no command wrapper")
 
     @abstractmethod
     def literal(self, value: str) -> str:
