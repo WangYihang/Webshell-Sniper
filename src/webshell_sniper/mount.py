@@ -27,10 +27,12 @@ from .core.php import php_string
 from .core.transport import Transport
 
 try:
+    # fusepy raises OSError (EnvironmentError), not ImportError, when the native
+    # libfuse library is absent even though the Python package is installed.
     from fuse import FUSE, FuseOSError, Operations
 
     _HAVE_FUSE = True
-except ImportError:  # pragma: no cover - exercised only without the extra
+except (ImportError, OSError):  # pragma: no cover - exercised only without the extra
     _HAVE_FUSE = False
     FuseOSError = OSError  # type: ignore[assignment,misc]
     Operations = object  # type: ignore[assignment,misc]
