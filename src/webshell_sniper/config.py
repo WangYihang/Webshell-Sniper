@@ -33,6 +33,7 @@ class Config:
     retries: int = 2
     retry_backoff: float = 0.5
     workers: int = 1
+    remote_complete: bool = True  # tab-complete remote paths (one ls per TAB, cached)
     debug: bool = False
     output_dir: Path = field(default_factory=lambda: Path.cwd())
 
@@ -48,7 +49,7 @@ ENV_PREFIX = "WEBSHELL_SNIPER_"
 # Only these fields are layerable from env/file (debug/output stay CLI-only).
 _LAYERABLE = {
     "timeout", "proxy", "verify_ssl", "user_agent", "encoder", "lang", "split",
-    "retries", "retry_backoff", "workers", "output_dir",
+    "retries", "retry_backoff", "workers", "remote_complete", "output_dir",
 }
 
 

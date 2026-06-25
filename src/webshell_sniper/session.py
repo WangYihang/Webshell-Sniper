@@ -23,7 +23,7 @@ from .core.webshell import WebShell
 class Session:
     shells: list[WebShell]
     cwd: str = ""  # client-tracked remote working directory
-    local_exec: bool = True  # run unrecognised input locally vs on the target
+    local_exec: bool = False  # run unrecognised input on the target (vs locally)
     history: list[str] = field(default_factory=list)
 
     def record(self, command: str) -> None:

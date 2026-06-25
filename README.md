@@ -83,38 +83,71 @@ supplies the command (for `exec`) or remote path (for `download`). Add
 
 ## Interactive commands
 
+Commands follow a namespaced `<group> <action>` scheme. Type a bare group (e.g.
+`recon`) — or `help recon` — to list its actions; `Tab` completes both group and
+action names.
+
+**`recon`** — target reconnaissance
+
+| Action | Description |
+|--------|-------------|
+| `recon info` | Target summary (URL, webroot, PHP & kernel version) |
+| `recon php` / `recon kernel` | PHP version / kernel version |
+| `recon configs` | Find config / database files in the webroot |
+| `recon writable` / `recon writable-php` | Find writable directories / writable PHP files |
+| `recon disabled` | List PHP `disable_functions` |
+| `recon suid` | Find SUID-root binaries |
+| `recon privesc` | Aggregate privesc enumeration (sudo/cron/caps/...) |
+| `recon creds` | Harvest credential files + DB creds from configs |
+
+**`file`** — remote file operations
+
+| Action | Description |
+|--------|-------------|
+| `file ls [path]` | List a remote directory (mode/size/mtime) |
+| `file read <path>` | Read a remote file (default `/etc/passwd`) |
+| `file get [--find ARGS] [--name GLOB] <path>` | Download a file or tree (`--find` = custom `find` args) |
+| `file put <local>` | Upload a local file to the target(s) |
+| `file rm [path]` | Delete a remote file (no path → the shell deletes itself) |
+| `file mv` / `file cp` | Move / copy a remote file |
+| `file mkdir` / `file chmod` | Make a directory / chmod (octal) |
+| `file edit <path>` | Download → open in `$EDITOR` → upload back |
+| `file touch <path> <ref>` | Copy a reference file's timestamps onto a file |
+
+**`pivot`** — lateral movement & tunnelling
+
+| Action | Description |
+|--------|-------------|
+| `pivot scan [--hosts CIDR --ports LIST --banner]` | Port-scan a range *from the target* |
+| `pivot shell [-i IP -p PORT -m METHOD]` | Reverse shell (socat/nc/bash/python/perl/php; optional local listener) |
+| `pivot pty [shell]` | Print steps to upgrade a dumb shell to a PTY |
+| `pivot socks [port]` | Plant a tunnel endpoint and open a local SOCKS5 proxy |
+| `pivot db` | Database manager (MySQL / PostgreSQL): browse, dump, run SQL |
+
+**`inject`** — secondary webshell injection
+
+| Action | Description |
+|--------|-------------|
+| `inject web` / `inject mem` | Inject a plain / memory-resident webshell (random per-directory password) |
+| `inject reaper` | Flag reaper (CTF) |
+
+**Session-control verbs** (flat)
+
 | Command | Description |
 |---------|-------------|
-| `p` / `print` | Print target info (webroot, PHP & kernel version) |
-| `pv`, `kv` | PHP version / kernel version |
-| `c` | Find config / database files in the webroot |
-| `r` / `read` | Read a remote file |
-| `rm` | Delete a remote file (no argument → the shell deletes itself) |
-| `fwd`, `fwpf` | Find writable directories / writable PHP files |
-| `gdf` | List PHP `disable_functions` |
-| `fsb` | Find SUID-root binaries |
-| `ps` | Port-scan a CIDR range *from the target* (optional banner grab) |
-| `dl`, `dla` | Download a file/tree (`dla` = custom `find` args) |
-| `ul` | Upload a local file to the target |
-| `ls` | List a remote directory (mode/size/mtime) |
-| `mv`, `cp`, `mkdir`, `chmod` | File-manager operations |
-| `edit` | Download → open in `$EDITOR` → upload back |
-| `timestomp` | Copy a reference file's timestamps onto a file |
-| `enum` | Aggregate privesc enumeration (sudo/cron/caps/...) |
-| `creds` | Harvest credential files + DB creds from configs |
-| `rsh` | Reverse shell (socat/nc/bash/python/perl/php; optional local listener) |
-| `db` | Database manager (MySQL / PostgreSQL): browse, dump, run SQL |
-| `aiw`, `aimw` | Inject a webshell / memory-resident webshell (random per-directory password) |
-| `fr` | Flag reaper (CTF) |
-| `setl` / `setr` | Run unrecognized input on **l**ocalhost / **r**emote target |
-| `exec <cmd>` | Explicitly run a command on the target |
-| `shell` | Interactive pseudo-shell on the target (cwd-aware) |
+| `exec <cmd>` | Explicitly run a command on the **remote** target |
+| `!<cmd>` | Run a command on the **local** machine |
+| `local` / `remote` | Route bare input to localhost / the target (default: `remote`) |
 | `cd`, `pwd` | Change / show the tracked remote working directory |
-| `help`, `q` | Help / quit |
+| `history`, `save` | Show recorded commands / snapshot the session |
+| `version`, `help`, `quit` | Version / help / quit |
 
-Anything not recognized as a command is executed as a shell command — locally
-by default, or on the target after `setr`. cmd2 gives you history (↑/↓),
-`Tab` completion and `help <command>`.
+Anything not recognized as a command runs as a shell command — on the **target**
+by default (or locally after `local`). The prompt carries a coloured
+`REMOTE`/`LOCAL` chip plus the tracked cwd so the active target is never
+ambiguous. Required arguments can be passed as flags (scriptable) or are prompted
+for interactively. cmd2 gives you history (↑/↓), `Tab` completion (including
+remote paths) and `help <command>`.
 
 ## Command execution & evasion notes
 

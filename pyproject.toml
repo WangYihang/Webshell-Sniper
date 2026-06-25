@@ -17,7 +17,7 @@ classifiers = [
 dependencies = [
     "requests>=2.28",
     "rich>=13.0",
-    "cmd2>=2.4",
+    "cmd2>=4.0",
 ]
 
 [project.optional-dependencies]
