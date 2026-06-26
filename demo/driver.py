@@ -20,21 +20,28 @@ import sys
 import termios
 import time
 
-WIDTH, HEIGHT = 104, 30
+WIDTH, HEIGHT = 104, 32
 
 # (command, seconds to linger after Enter) — the highlight reel.
+# NB: the `pivot scan` range matches the docker compose network (172.16.1.0/29);
+# it discovers the internal MySQL (.2:3306) and PostgreSQL (.3:5432) services.
 CMDS = [
+    ("recon", 1.8),                            # bare group -> namespaced action list
     ("recon info", 2.0),                       # target summary
-    ("recon", 2.2),                            # bare group -> namespaced action list
-    ("recon disabled", 2.2),                   # recon
-    ("file ls /var/www/html", 2.2),            # table rendering
-    ("id", 1.8),                               # bare input -> REMOTE (prompt chip)
-    ("local", 1.3),                            # safety: prompt flips to LOCAL
-    ("whoami", 1.6),                           # runs on the operator box
-    ("remote", 1.3),                           # back to REMOTE
-    ("file get /var/www/html/index.php", 2.4), # download
-    ("pivot shell --help", 2.6),               # scriptable inline flags
-    ("version", 1.6),
+    ("recon privesc", 2.6),                    # aggregate privesc enumeration
+    ("cd /var/www/html", 1.6),                 # prompt cwd updates (state-aware)
+    ("file ls", 2.0),                          # cwd-aware directory table
+    ("file read /etc/passwd", 2.2),            # read a remote file
+    ("id", 1.8),                               # bare input -> REMOTE (www-data)
+    ("local", 1.2),                            # safety: prompt flips to LOCAL
+    ("whoami", 1.5),                           # runs on the operator box (ubuntu)
+    ("remote", 1.2),                           # back to REMOTE
+    ("pivot scan --hosts 172.16.1.0/29 --ports 3306,5432", 4.6),  # pivot: find internal DBs
+    ("pivot db --engine mysql --host db --user root --password root", 2.4),  # DB manager
+    ("databases", 1.8),                        #   nested DB sub-REPL: list schemas
+    ("version", 1.5),                          #   DB server version
+    ("quit", 1.3),                             #   leave the DB sub-REPL
+    ("inject web --password s3cr3t", 2.6),     # inject a secondary webshell
     ("quit", 1.8),                             # snapshots the session
 ]
 

