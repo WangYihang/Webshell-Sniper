@@ -12,6 +12,12 @@ Given a PHP webshell that is already on a target (a one-liner such as
 interactive console: command execution, recon, file transfer, a MySQL client,
 pivot port-scanning, reverse shells and secondary-shell injection.
 
+![Webshell-Sniper demo](demo/sniper.gif)
+
+> The prompt's coloured chip always shows where your input lands — **`REMOTE`**
+> on the target (`id` → `www-data`) vs **`LOCAL`** on your box (`whoami` →
+> `ubuntu`) — so a command never hits the wrong machine.
+
 > ## ⚠️ Legal & authorized use only
 >
 > This is an offensive-security tool. Use it **only** against systems you own
