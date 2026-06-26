@@ -1,0 +1,4 @@
+[
+  {"url": "http://127.0.0.1:8080/index.php", "method": "POST", "password": "c"},
+  {"url": "http://127.0.0.1:8080/c2.php", "method": "POST", "password": "c"}
+]

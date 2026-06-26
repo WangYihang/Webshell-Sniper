@@ -207,6 +207,62 @@ def test_file_put_remote_arg_no_prompt(monkeypatch, repl, tmp_path):
     assert calls["dst"] == "/var/www/html/payload.txt"
 
 
+@pytest.fixture
+def multi():
+    shells = [FakeWS("a"), FakeWS("b")]
+    return Repl(shells, Config(output_dir="."), session=Session(list(shells)))
+
+
+def test_prompt_shows_active_session_id(multi):
+    assert "[0]" in multi.prompt
+    run(multi, "sessions -i 1")
+    assert multi.active == 1 and "[1]" in multi.prompt
+
+
+def test_bare_command_targets_active_only(multi, capsys):
+    run(multi, "sessions -i 1")
+    run(multi, "whoami")
+    out = capsys.readouterr().out
+    assert "http://b/c.php" in out and "http://a/c.php" not in out
+
+
+def test_sessions_broadcast_hits_all(multi, capsys):
+    run(multi, "sessions -c id")
+    out = capsys.readouterr().out
+    assert "http://a/c.php" in out and "http://b/c.php" in out
+
+
+def test_recon_all_broadcasts(multi, capsys):
+    run(multi, "recon --all info")
+    out = capsys.readouterr().out
+    assert out.count("Document root") == 2  # both sessions
+
+
+def test_datastore_default_used_without_prompt(monkeypatch, repl, capsys):
+    seen = {}
+    monkeypatch.setattr(
+        "webshell_sniper.features.portscan.port_scan",
+        lambda ws, hosts, ports, banner: seen.setdefault("args", (hosts, ports)) or "",
+    )
+    monkeypatch.setattr(builtins, "input", lambda *_: pytest.fail("should not prompt"))
+    run(repl, "set RANGE 10.0.0.0/30")
+    run(repl, "set PORTS 22,80")
+    run(repl, "pivot scan")  # no flags -> reads RANGE/PORTS from the datastore
+    assert seen["args"] == ("10.0.0.0/30", "22,80")
+
+
+def test_options_lists_datastore(repl, capsys):
+    run(repl, "set LHOST 1.2.3.4")
+    run(repl, "options")
+    out = capsys.readouterr().out
+    assert "LHOST" in out and "1.2.3.4" in out
+
+
+def test_meterpreter_alias_resolves(repl, capsys):
+    run(repl, "getuid")  # alias -> exec id
+    assert "ran:id" in capsys.readouterr().out
+
+
 def test_remote_path_completion_cached(repl):
     seen = {"n": 0}
 

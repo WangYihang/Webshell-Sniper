@@ -29,6 +29,13 @@ roadmap.
   per-attempt reverse-shell timeout. (PTY, MISC)
 
 ### Changed
+- **Metasploit-style UX**: commands now target an **active session** (prompt shows
+  `[id]`) instead of always broadcasting; `sessions` lists/switches (`-i`), `-c`
+  runs a command on all, `background`/`bg` steps back, and `--all` broadcasts a
+  group command. A datastore (`set`/`unset`/`options`, e.g. `LHOST`/`LPORT`/`RANGE`/
+  `DB_*`) supplies defaults so pivot/inject stop re-prompting. Meterpreter aliases
+  (`sysinfo`, `getuid`, `download`, `upload`, `cat`, `ls`, `ps`, `ifconfig`,
+  `netstat`, `getwd`) map onto the namespaced commands. (MSF)
 - **Command redesign (UX)**: a unified, namespaced `<group> <action>` vocabulary
   (`recon`/`file`/`pivot`/`inject`) replaces the v1 abbreviations (`p`, `gdf`,
   `fwpf`, `aiw`, `rsh`, ...); session-control verbs (`cd`, `pwd`, `exec`,

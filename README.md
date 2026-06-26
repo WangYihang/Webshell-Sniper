@@ -141,6 +141,23 @@ action names.
 | `inject web` / `inject mem` | Inject a plain / memory-resident webshell (random per-directory password) |
 | `inject reaper` | Flag reaper (CTF) |
 
+**Sessions & datastore** (Metasploit-style)
+
+| Command | Description |
+|---------|-------------|
+| `sessions` | List loaded shells (`*` marks the active one) |
+| `sessions -i <id>` | Make session `<id>` the active target |
+| `sessions -c <cmd>` | Run a shell command on **all** sessions at once |
+| `background` / `bg` | Step back to the session list |
+| `set <KEY> <VALUE>` | Store a default — `LHOST`, `LPORT`, `RANGE`, `PORTS`, `DB_*` |
+| `unset <KEY>` / `options` | Clear a setting / show the datastore |
+
+With several shells loaded, commands target the **active session** by default
+(the prompt shows `[id]`); add `--all` to a group command (`recon --all info`,
+`file --all rm …`) to broadcast. Settings put in the datastore are reused as
+defaults, so `pivot shell` / `pivot scan` / `pivot db` stop asking once you
+`set` them.
+
 **Session-control verbs** (flat)
 
 | Command | Description |
@@ -152,12 +169,16 @@ action names.
 | `history`, `save` | Show recorded commands / snapshot the session |
 | `version`, `help`, `quit` | Version / help / quit |
 
+**Meterpreter aliases** — msf muscle memory works: `sysinfo` (→ `recon info`),
+`getuid` (→ `id`), `download`/`upload` (→ `file get`/`put`), `cat`/`ls`
+(→ `file read`/`ls`), `ps`, `ifconfig`, `netstat`, `getwd`.
+
 Anything not recognized as a command runs as a shell command — on the **target**
 by default (or locally after `local`). The prompt carries a coloured
-`REMOTE`/`LOCAL` chip plus the tracked cwd so the active target is never
-ambiguous. Required arguments can be passed as flags (scriptable) or are prompted
-for interactively. cmd2 gives you history (↑/↓), `Tab` completion (including
-remote paths) and `help <command>`.
+`REMOTE`/`LOCAL` chip, the active session `[id]` and the tracked cwd so the
+active target is never ambiguous. Required arguments can be passed as flags
+(scriptable) or are prompted for interactively. cmd2 gives you history (↑/↓),
+`Tab` completion (including remote paths) and `help <command>`.
 
 ## Command execution & evasion notes
 

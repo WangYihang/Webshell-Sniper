@@ -25,6 +25,8 @@ class Session:
     cwd: str = ""  # client-tracked remote working directory
     local_exec: bool = False  # run unrecognised input on the target (vs locally)
     history: list[str] = field(default_factory=list)
+    active: int = 0  # index of the session commands target by default (meterpreter-style)
+    store: dict[str, str] = field(default_factory=dict)  # datastore: LHOST/LPORT/RANGE/DB_*
 
     def record(self, command: str) -> None:
         """Append a command to the in-session history (blank lines ignored)."""
@@ -36,6 +38,8 @@ class Session:
             "cwd": self.cwd,
             "local_exec": self.local_exec,
             "history": self.history,
+            "active": self.active,
+            "store": self.store,
             "shells": [s.info.to_dict() for s in self.shells],
         }
 
@@ -51,9 +55,12 @@ class Session:
             WebShell(s["url"], s["method"], s["password"], config)
             for s in data.get("shells", [])
         ]
+        active = int(data.get("active", 0))
         return cls(
             shells=shells,
             cwd=data.get("cwd", ""),
             local_exec=data.get("local_exec", True),
             history=list(data.get("history", [])),
+            active=active if 0 <= active < len(shells) else 0,
+            store=dict(data.get("store", {})),
         )
