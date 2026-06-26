@@ -326,6 +326,8 @@ class Repl(cmd2.Cmd):
     _p.set_defaults(fn="_file_get")
     _p = _fsub.add_parser("put", help="upload a local file to the target(s)")
     _p.add_argument("local", nargs="?", completer=_complete_local_path)
+    _p.add_argument("remote", nargs="?", completer=_complete_remote_path,
+                    help="remote destination (default: <webroot>/<name>)")
     _p.set_defaults(fn="_file_put")
     _p = _fsub.add_parser("rm", help="delete a remote file (no path → self-delete)")
     _p.add_argument("path", nargs="?", completer=_complete_remote_path)
@@ -412,7 +414,13 @@ class Repl(cmd2.Cmd):
             log.error("Local file not found.")
             return
         for ws in self.webshells:
-            remote = self._ask(f"Remote path on {ws.url}", f"{ws.webroot}/{Path(local).name}")
+            default_remote = f"{ws.webroot}/{Path(local).name}"
+            if args.remote is not None:
+                remote = args.remote
+            elif self._interactive():
+                remote = self._ask(f"Remote path on {ws.url}", default_remote)
+            else:
+                remote = default_remote
             log.info(f"[upload] {ws}")
             try:
                 files.upload(ws, local, remote)

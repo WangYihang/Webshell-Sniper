@@ -193,6 +193,20 @@ def test_pivot_shell_scriptable(monkeypatch, repl, capsys):
     assert calls["args"] == ("10.0.0.5", 4444, "bash")
 
 
+def test_file_put_remote_arg_no_prompt(monkeypatch, repl, tmp_path):
+    # Explicit remote path -> scriptable: uploads without prompting.
+    local = tmp_path / "payload.txt"
+    local.write_text("x")
+    calls = {}
+    monkeypatch.setattr(
+        "webshell_sniper.features.files.upload",
+        lambda ws, lp, rp: calls.setdefault("dst", rp),
+    )
+    monkeypatch.setattr(builtins, "input", lambda *_: pytest.fail("should not prompt"))
+    run(repl, f"file put {local} /var/www/html/payload.txt")
+    assert calls["dst"] == "/var/www/html/payload.txt"
+
+
 def test_remote_path_completion_cached(repl):
     seen = {"n": 0}
 

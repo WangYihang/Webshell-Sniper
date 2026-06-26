@@ -14,12 +14,13 @@ pivot port-scanning, reverse shells and secondary-shell injection.
 
 ![Webshell-Sniper demo](demo/sniper.gif)
 
-> One run, end to end: recon (`recon info`/`privesc`), cwd-aware file ops, the
-> exec-mode safety toggle, a `pivot scan` that finds the internal MySQL +
-> PostgreSQL, the `pivot db` manager, and `inject web`. The prompt's coloured
-> chip always shows where input lands — **`REMOTE`** on the target (`id` →
-> `www-data`) vs **`LOCAL`** on your box (`whoami` → `ubuntu`) — so a command
-> never hits the wrong machine.
+> One run, end to end: recon (`recon info`/`privesc`), cwd-aware file ops with an
+> upload→download round-trip, the exec-mode safety toggle, a `pivot scan` that
+> finds the internal MySQL + PostgreSQL, the `pivot db` manager, `inject web`,
+> and a real reverse shell caught in a local listener. The prompt's coloured chip
+> always shows where input lands — **`REMOTE`** on the target (`id` → `www-data`)
+> vs **`LOCAL`** on your box (`whoami` → `ubuntu`) — so a command never hits the
+> wrong machine.
 
 > ## ⚠️ Legal & authorized use only
 >

