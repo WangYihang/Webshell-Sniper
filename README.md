@@ -33,7 +33,7 @@ pivot port-scanning, reverse shells and secondary-shell injection.
 
 ## Requirements
 
-- Python **3.10+**
+- Python **3.11+**
 - A reachable PHP webshell that evaluates a request parameter (`eval`-style)
 
 ## Installation

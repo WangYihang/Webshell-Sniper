@@ -3,7 +3,7 @@ name = "webshell-sniper"
 version = "2.0.0"
 description = "A webshell manager via terminal — for authorized penetration testing and CTF."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = { file = "LICENSE" }
 authors = [{ name = "WangYihang", email = "wangyihanger@gmail.com" }]
 keywords = ["webshell", "pentest", "security", "ctf", "post-exploitation"]
@@ -49,7 +49,7 @@ dev = [
 
 [tool.ruff]
 line-length = 100
-target-version = "py310"
+target-version = "py311"
 src = ["src", "tests"]
 
 [tool.ruff.lint]
@@ -57,7 +57,7 @@ select = ["E", "F", "I", "UP", "B", "W", "C4", "SIM"]
 ignore = ["E501"]
 
 [tool.mypy]
-python_version = "3.10"
+python_version = "3.11"
 packages = ["webshell_sniper"]
 warn_unused_ignores = true
 warn_redundant_casts = true
