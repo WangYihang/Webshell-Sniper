@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterable, Sequence
-from typing import TypeVar
 
 from rich.console import Console
 
@@ -18,8 +17,6 @@ from .render import ConsoleRenderer, Renderer, make_renderer
 
 console = Console()
 error_console = Console(stderr=True)
-
-_T = TypeVar("_T")
 
 _logger = logging.getLogger("webshell_sniper")
 _debug_enabled = False
@@ -90,6 +87,6 @@ def table(
     _renderer.table(columns, rows, title)
 
 
-def track(items: Sequence[_T], description: str = "Working") -> Iterable[_T]:
+def track[T](items: Sequence[T], description: str = "Working") -> Iterable[T]:
     """Wrap a sequence in a progress bar (used for multi-file transfers)."""
     return _renderer.track(items, description)
